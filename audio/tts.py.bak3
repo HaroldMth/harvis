@@ -1,0 +1,186 @@
+"""Local TTS using kokoro-onnx with lazy loading, keep-alive, and text cleaning.
+
+Model: kokoro-v1.0
+Loaded on first use, kept alive for 60s after last use, then unloaded.
+"""
+
+import os
+import re
+import time
+import threading
+import logging
+import tempfile
+import subprocess
+import sounddevice as sd
+import numpy as np
+
+logger = logging.getLogger("harvis.tts")
+
+# Configuration
+MODEL_PATH = os.environ.get("HARVIS_KOKORO_MODEL", "kokoro-v1.0.onnx")
+VOICES_PATH = os.environ.get("HARVIS_KOKORO_VOICES", "voices-v1.0.bin")
+DEFAULT_VOICE = os.environ.get("HARVIS_KOKORO_VOICE", "am_eric")  # Eric voice
+DEFAULT_SPEED = float(os.environ.get("HARVIS_KOKORO_SPEED", "1.1"))
+DEFAULT_LANG = os.environ.get("HARVIS_KOKORO_LANG", "en-us")
+KEEP_ALIVE_SECONDS = 60
+
+# Global state
+_kokoro = None
+_last_used = 0
+_lock = threading.Lock()
+_unload_timer = None
+
+
+def _load_kokoro():
+    """Lazy-load the Kokoro TTS model."""
+    global _kokoro, _last_used
+    with _lock:
+        if _kokoro is not None:
+            _last_used = time.time()
+            return _kokoro
+
+        logger.info(f"Loading kokoro-onnx model: {MODEL_PATH}")
+        try:
+            from kokoro_onnx import Kokoro
+            _kokoro = Kokoro(MODEL_PATH, VOICES_PATH)
+            _last_used = time.time()
+            logger.info("TTS model loaded successfully.")
+            _schedule_unload()
+            return _kokoro
+        except Exception as e:
+            logger.error(f"Failed to load TTS model: {e}")
+            raise
+
+
+def _schedule_unload():
+    """Schedule model unload after keep-alive timeout."""
+    global _unload_timer
+    if _unload_timer is not None:
+        _unload_timer.cancel()
+    _unload_timer = threading.Timer(KEEP_ALIVE_SECONDS, _unload_model)
+    _unload_timer.daemon = True
+    _unload_timer.start()
+
+
+def _unload_model():
+    """Unload model to free RAM."""
+    global _kokoro, _unload_timer
+    with _lock:
+        if _kokoro is not None:
+            elapsed = time.time() - _last_used
+            if elapsed >= KEEP_ALIVE_SECONDS:
+                logger.info("Unloading TTS model to free RAM.")
+                del _kokoro
+                _kokoro = None
+            else:
+                _unload_timer = threading.Timer(
+                    KEEP_ALIVE_SECONDS - elapsed, _unload_model
+                )
+                _unload_timer.daemon = True
+                _unload_timer.start()
+
+
+def clean_text_for_tts(text: str) -> str:
+    """
+    Strip all markdown, icons, emojis, and formatting before TTS.
+    Returns plain speech-ready text.
+    """
+    if not text:
+        return ""
+
+    # Remove code blocks
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    # Remove inline code
+    text = re.sub(r'`[^`]+`', '', text)
+    # Remove icon shortcodes :name:
+    text = re.sub(r':[a-zA-Z0-9_]+:', '', text)
+    # Remove markdown formatting (bold, italic, strikethrough)
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'~~(.+?)~~', r'\1', text)
+    # Remove headers
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    # Remove bullet/numbered list markers
+    text = re.sub(r'^\s*[-*]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+    # Remove blockquote markers
+    text = re.sub(r'^>\s?', '', text, flags=re.MULTILINE)
+    # Remove horizontal rules
+    text = re.sub(r'^\s*---+\s*$', '', text, flags=re.MULTILINE)
+    # Remove links [text](url) -> text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    # Remove remaining markdown chars
+    text = text.replace('#', '').replace('>', '').replace('|', '')
+    # Remove Unicode emojis
+    text = re.sub(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]+', '', text)
+    # Collapse multiple spaces/newlines
+    text = re.sub(r'\n+', ' ', text)
+    text = re.sub(r'\s+', ' ', text)
+
+    return text.strip()
+
+
+def synthesize(text: str, voice: str = None, speed: float = None, lang: str = None):
+    """Synthesize speech from text. Returns (samples, sample_rate)."""
+    kokoro = _load_kokoro()
+    voice = voice or DEFAULT_VOICE
+    speed = speed if speed is not None else DEFAULT_SPEED
+    lang = lang or DEFAULT_LANG
+
+    # Clean text before synthesis
+    clean_text = clean_text_for_tts(text)
+    if not clean_text:
+        logger.warning("No speakable text after cleaning.")
+        return None, None
+
+    logger.info(f"Synthesizing: '{clean_text[:60]}...' (voice={voice}, speed={speed})")
+    try:
+        samples, sample_rate = kokoro.create(
+            clean_text,
+            voice=voice,
+            speed=speed,
+            lang=lang,
+        )
+        return samples, sample_rate
+    except Exception as e:
+        logger.error(f"Synthesis failed: {e}")
+        raise
+
+
+def play_audio(samples, sample_rate):
+    """Play audio samples through speakers."""
+    if samples is None:
+        return
+    try:
+        sd.play(samples, sample_rate)
+        sd.wait()
+    except Exception as e:
+        logger.error(f"Audio playback failed: {e}")
+        raise
+
+
+def text_to_speech(text: str, out_path: str = "reply.mp3") -> bool:
+    """
+    Main entry point: clean, synthesize and play the response.
+    Returns True on success.
+    """
+    try:
+        samples, sample_rate = synthesize(text)
+        play_audio(samples, sample_rate)
+        return True
+    except Exception as e:
+        logger.error(f"TTS failed: {e}")
+        return False
+
+
+def unload():
+    """Force unload the model immediately."""
+    global _kokoro, _unload_timer
+    with _lock:
+        if _unload_timer:
+            _unload_timer.cancel()
+            _unload_timer = None
+        if _kokoro is not None:
+            logger.info("Force-unloading TTS model.")
+            del _kokoro
+            _kokoro = None

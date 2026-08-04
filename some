@@ -1,0 +1,25 @@
+import torch
+import torchaudio as ta
+from chatterbox.tts import ChatterboxTTS
+
+print("⏳ Loading Chatterbox model...")
+# Use "cpu" since we are managing resources for an 8GB RAM rig
+model = ChatterboxTTS.from_pretrained(device="cpu")
+
+text = "Hello Harold. This is a direct test of the Chatterbox speech generation pipeline, running locally on your machine."
+
+print(f"🧠 Synthesizing: '{text}'")
+
+# Generate speech using default configuration 
+# (exaggeration controls emotion intensity, cfg_weight controls pacing)
+wav = model.generate(
+    text=text, 
+    exaggeration=0.6,  # Slightly richer cadence than default 0.5
+    cfg_weight=0.5
+)
+
+# Save the output to disk
+output_filename = "chatterbox_test_output.wav"
+ta.save(output_filename, wav, model.sr)
+
+print(f"✅ Success! Audio saved to {output_filename}")

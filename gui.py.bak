@@ -1,0 +1,706 @@
+import tkinter as tk
+from tkinter import ttk
+import queue
+import threading
+import math
+import time
+import logging
+import re
+import webbrowser
+from datetime import datetime
+
+logger = logging.getLogger("harvis.gui")
+
+# ------------------------------------------------------------------
+# Material Symbols icon mapping (shortcode -> Unicode)
+# Requires a Material Symbols or Nerd Font installed.
+# On Arch: sudo pacman -S ttf-material-symbols
+# ------------------------------------------------------------------
+ICON_MAP = {
+    # Weather
+    "sunny":              "\U0000e81a",   # sunny
+    "wb_sunny":           "\U0000e430",   # wb_sunny
+    "partly_cloudy_day":  "\U0000f0c4",   # partly_cloudy_day
+    "cloud":              "\U0000e2bd",   # cloud
+    "foggy":              "\U0000e818",   # foggy
+    "rainy":              "\U0000f176",   # rainy
+    "rainy_heavy":        "\U0000f61f",   # rainy_heavy
+    "ac_unit":            "\U0000eb3b",   # ac_unit
+    "weather_snowy":      "\U0000e2cd",   # weather_snowy
+    "thunderstorm":       "\U0000ebdb",   # thunderstorm
+    # General
+    "help":               "\U0000e8fd",   # help
+    "check_circle":       "\U0000e86c",   # check_circle
+    "error":              "\U0000e000",   # error
+    "warning":            "\U0000e002",   # warning
+    "info":               "\U0000e88e",   # info
+    "send":               "\U0000e163",   # send
+    "mic":                "\U0000e029",   # mic
+    "settings":           "\U0000e8b8",   # settings
+    "home":               "\U0000e88a",   # home
+    "search":             "\U0000e8b6",   # search
+    "music_note":         "\U0000e405",   # music_note
+}
+
+
+def _resolve_icon(shortcode: str) -> str:
+    """Convert :shortcode: to Unicode icon, or return original if unknown."""
+    return ICON_MAP.get(shortcode.strip(":"), f":{shortcode.strip(':')}:")
+
+
+class HarvisGUI:
+    def __init__(self, root, on_text_submit_callback=None, on_voice_activate_callback=None):
+        self.root = root
+        self.on_text_submit_callback = on_text_submit_callback
+        self.on_voice_activate_callback = on_voice_activate_callback
+
+        # Window settings
+        self.root.title("HARVIS - Voice & Text Assistant")
+        self.root.geometry("900x750")
+        self.root.minsize(500, 600)
+
+        # Configure colors (Modern Dark Theme)
+        self.bg_color = "#0d1117"
+        self.card_color = "#161b22"
+        self.accent_color = "#bb86fc"
+        self.text_color = "#e6edf3"
+        self.input_bg = "#21262d"
+        self.muted_text = "#8b949e"
+        self.border_color = "#30363d"
+        self.header_bg = "#010409"
+
+        self.root.configure(bg=self.bg_color)
+
+        # Thread-safe confirmation queue
+        self.confirm_queue = queue.Queue()
+        self.root.bind("<<CheckConfirm>>", self.handle_confirm_request)
+
+        # Placeholder state
+        self._placeholder_active = True
+        self._placeholder_text = "Ask HARVIS anything..."
+
+        # Setup layouts
+        self.create_widgets()
+
+        # Initial VAD/Assistant state
+        self.current_state = "Idle"
+        self.state_label.config(text="HARVIS  Idle")
+
+        # Start animations
+        self.animate_indicator()
+
+    # ------------------------------------------------------------------
+    # Widget creation
+    # ------------------------------------------------------------------
+
+    def create_widgets(self):
+        # 1. Header Frame
+        header_frame = tk.Frame(self.root, bg=self.header_bg, height=50)
+        header_frame.pack(fill="x", side="top")
+        header_frame.pack_propagate(False)
+
+        # Indicator Canvas
+        self.indicator_canvas = tk.Canvas(
+            header_frame,
+            width=36,
+            height=36,
+            bg=self.header_bg,
+            highlightthickness=0
+        )
+        self.indicator_canvas.pack(side="left", padx=(16, 8), pady=7)
+
+        # Status Label
+        self.state_label = tk.Label(
+            header_frame,
+            text="HARVIS  Ready",
+            font=("Inter", 13, "bold"),
+            fg=self.text_color,
+            bg=self.header_bg
+        )
+        self.state_label.pack(side="left")
+
+        # 2. Main Chat History (Text Widget with custom scrollbar)
+        chat_frame = tk.Frame(self.root, bg=self.bg_color)
+        chat_frame.pack(fill="both", expand=True, padx=16, pady=(8, 4))
+
+        # Custom dark scrollbar
+        scrollbar = tk.Scrollbar(
+            chat_frame,
+            bg=self.card_color,
+            troughcolor=self.bg_color,
+            activebackground=self.accent_color,
+            highlightbackground=self.border_color,
+            highlightcolor=self.border_color,
+            bd=0,
+            width=10,
+            elementborderwidth=0
+        )
+        scrollbar.pack(side="right", fill="y")
+
+        self.chat_display = tk.Text(
+            chat_frame,
+            wrap="word",
+            bg=self.card_color,
+            fg=self.text_color,
+            insertbackground=self.text_color,
+            relief="flat",
+            font=("Inter", 11),
+            padx=16,
+            pady=16,
+            yscrollcommand=scrollbar.set,
+            spacing1=2,
+            spacing3=2,
+            state="disabled",
+            highlightthickness=0,
+            borderwidth=0
+        )
+        self.chat_display.pack(fill="both", expand=True, side="left")
+        scrollbar.config(command=self.chat_display.yview)
+
+        # Configure icon font tag
+        self.chat_display.tag_config(
+            "icon",
+            font=("Material Symbols Outlined", 14),
+            foreground=self.accent_color,
+        )
+
+        # Chat formatting tags
+        self._setup_chat_tags()
+
+        # 3. Input Frame
+        input_frame = tk.Frame(self.root, bg=self.bg_color, pady=12)
+        input_frame.pack(fill="x", side="bottom", padx=16, pady=(0, 12))
+
+        # Input container with border
+        input_container = tk.Frame(
+            input_frame,
+            bg=self.border_color,
+            highlightthickness=1,
+            highlightbackground=self.border_color,
+            bd=0
+        )
+        input_container.pack(fill="x", expand=True, side="left", padx=(0, 10))
+
+        self.entry_var = tk.StringVar()
+        self.input_entry = tk.Entry(
+            input_container,
+            textvariable=self.entry_var,
+            bg=self.input_bg,
+            fg=self.muted_text,
+            insertbackground=self.text_color,
+            relief="flat",
+            font=("Inter", 12),
+            bd=0,
+            highlightthickness=0,
+        )
+        self.input_entry.pack(fill="both", expand=True, side="left", ipady=10, padx=12)
+        self.input_entry.bind("<Return>", lambda e: self.on_send())
+        self.input_entry.bind("<FocusIn>", self._on_entry_focus_in)
+        self.input_entry.bind("<FocusOut>", self._on_entry_focus_out)
+
+        # Set placeholder
+        self.entry_var.set(self._placeholder_text)
+        self.input_entry.focus()
+
+        # Voice button
+        self.voice_button = tk.Button(
+            input_frame,
+            text="MIC",
+            font=("Material Symbols Outlined", 14),
+            bg="#1a7f5e",
+            fg=self.text_color,
+            activebackground="#147a52",
+            activeforeground=self.text_color,
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=self.on_voice_activate,
+            width=3,
+            height=1,
+            padx=8,
+            pady=4,
+        )
+        self.voice_button.pack(side="right", fill="y", padx=(0, 8))
+
+        # Send button
+        send_btn = tk.Button(
+            input_frame,
+            text="SEND",
+            font=("Material Symbols Outlined", 14),
+            bg=self.accent_color,
+            fg="#000000",
+            activebackground="#9e67e5",
+            activeforeground="#000000",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=self.on_send,
+            width=3,
+            height=1,
+            padx=8,
+            pady=4,
+        )
+        send_btn.pack(side="right", fill="y")
+
+    def _setup_chat_tags(self):
+        """Configure all chat display text tags."""
+        d = self.chat_display
+
+        # Labels (role headers with timestamps)
+        d.tag_config("user_label", foreground="#58a6ff", background="#0d1117",
+                     font=("Inter", 10, "bold"), spacing1=10)
+        d.tag_config("user_body", foreground=self.text_color, background="#0d1117",
+                     font=("Inter", 11), lmargin1=12, lmargin2=12, rmargin=12, spacing3=8)
+
+        d.tag_config("assistant_label", foreground="#bb86fc", background="#0d1117",
+                     font=("Inter", 10, "bold"), spacing1=10)
+        d.tag_config("assistant_body", foreground=self.text_color, background="#0d1117",
+                     font=("Inter", 11), lmargin1=12, lmargin2=12, rmargin=12, spacing3=8)
+
+        # Markdown formatting tags
+        d.tag_config("md_bold", foreground="#ffffff", background="#0d1117",
+                     font=("Inter", 11, "bold"))
+        d.tag_config("md_italic", foreground="#c9d1d9", background="#0d1117",
+                     font=("Inter", 11, "italic"))
+        d.tag_config("md_code", foreground="#ff7b72", background="#161b22",
+                     font=("JetBrains Mono", 10), lmargin1=12, lmargin2=12)
+        d.tag_config("md_code_block", foreground="#e6edf3", background="#0d1117",
+                     font=("JetBrains Mono", 10), lmargin1=16, lmargin2=16, spacing1=4, spacing3=4)
+        d.tag_config("md_header1", foreground="#bb86fc", background="#0d1117",
+                     font=("Inter", 16, "bold"), spacing1=12, spacing3=6)
+        d.tag_config("md_header2", foreground="#bb86fc", background="#0d1117",
+                     font=("Inter", 13, "bold"), spacing1=10, spacing3=4)
+        d.tag_config("md_header3", foreground="#d2a8ff", background="#0d1117",
+                     font=("Inter", 12, "bold"), spacing1=8, spacing3=4)
+        d.tag_config("md_bullet", foreground="#8b949e", background="#0d1117",
+                     font=("Inter", 11), lmargin1=24, lmargin2=24)
+        d.tag_config("md_numbered", foreground="#8b949e", background="#0d1117",
+                     font=("Inter", 11), lmargin1=24, lmargin2=24)
+        d.tag_config("md_blockquote", foreground="#8b949e", background="#161b22",
+                     font=("Inter", 11, "italic"), lmargin1=20, lmargin2=20, spacing1=4, spacing3=4)
+        d.tag_config("md_strike", foreground="#6e7681", background="#0d1117",
+                     font=("Inter", 11, "overstrike"))
+        d.tag_config("md_hr", foreground="#30363d", background="#0d1117",
+                     font=("Inter", 2), spacing1=6, spacing3=6)
+
+        d.tag_config("tool_label", foreground="#3fb950", background="#0d1117",
+                     font=("Inter", 10, "bold"), spacing1=10)
+        d.tag_config("tool_body", foreground="#7ee787", background="#0d1117",
+                     font=("JetBrains Mono", 10), lmargin1=12, lmargin2=12, rmargin=12, spacing3=8)
+        d.tag_config("system", foreground=self.muted_text, background="#0d1117",
+                     font=("Inter", 10, "italic"), spacing1=7, spacing3=7)
+        d.tag_config("link", foreground="#58a6ff", underline=True)
+        d.tag_config("timestamp", foreground="#484f58", background="#0d1117",
+                     font=("JetBrains Mono", 9))
+
+    # ------------------------------------------------------------------
+    # Placeholder handling
+    # ------------------------------------------------------------------
+
+    def _on_entry_focus_in(self, event=None):
+        if self._placeholder_active:
+            self.entry_var.set("")
+            self.input_entry.config(fg=self.text_color)
+            self._placeholder_active = False
+
+    def _on_entry_focus_out(self, event=None):
+        if not self.entry_var.get().strip():
+            self.entry_var.set(self._placeholder_text)
+            self.input_entry.config(fg=self.muted_text)
+            self._placeholder_active = True
+
+    # ------------------------------------------------------------------
+    # Input handling
+    # ------------------------------------------------------------------
+
+    def on_send(self):
+        text = self.entry_var.get().strip()
+        if self._placeholder_active:
+            return
+        if text and self.on_text_submit_callback:
+            self.entry_var.set("")
+            self._placeholder_active = True
+            self.input_entry.config(fg=self.muted_text)
+            self.on_text_submit_callback(text)
+
+    def on_voice_activate(self):
+        """Start one explicit push-to-talk interaction."""
+        if self.on_voice_activate_callback:
+            self.set_voice_capture_active(True)
+            self.on_voice_activate_callback()
+
+    def set_voice_capture_active(self, active):
+        """Safely reflect microphone capture state."""
+        def update():
+            if active:
+                self.voice_button.config(text="STOP", state="disabled", bg="#cf222e")
+            else:
+                self.voice_button.config(text="MIC", state="normal", bg="#1a7f5e")
+        self.root.after(0, update)
+
+    def set_state(self, state):
+        """Updates UI state: Listening, Thinking, Speaking, Idle, Error"""
+        self.current_state = state
+        self.root.after(0, lambda: self.state_label.config(text=f"HARVIS  {state}"))
+        logger.info(f"GUI State set to: {state}")
+
+    # ------------------------------------------------------------------
+    # Timestamp helper
+    # ------------------------------------------------------------------
+
+    def _get_timestamp(self) -> str:
+        return datetime.now().strftime("%H:%M")
+
+    # ------------------------------------------------------------------
+    # Link insertion
+    # ------------------------------------------------------------------
+
+    def _insert_link(self, label, url):
+        """Insert a clickable link."""
+        tag = f"link_{self.chat_display.index('end').replace('.', '_')}"
+        self.chat_display.insert("end", label, ("assistant_body", "link", tag))
+        self.chat_display.tag_bind(tag, "<Button-1>", lambda _event, target=url: webbrowser.open(target))
+        self.chat_display.tag_bind(tag, "<Enter>", lambda _event: self.chat_display.config(cursor="hand2"))
+        self.chat_display.tag_bind(tag, "<Leave>", lambda _event: self.chat_display.config(cursor=""))
+
+    # ------------------------------------------------------------------
+    # Icon insertion
+    # ------------------------------------------------------------------
+
+    def _insert_icon(self, shortcode: str):
+        """Insert an icon from the ICON_MAP."""
+        icon_char = _resolve_icon(shortcode)
+        self.chat_display.insert("end", icon_char + " ", "icon")
+
+    # ------------------------------------------------------------------
+    # Extended Markdown renderer
+    # ------------------------------------------------------------------
+
+    def _insert_assistant_text(self, text):
+        """Render extended Markdown: headers, bold, italic, code, lists, blockquotes, strikethrough, hr, icons, links."""
+        lines = text.split("\n")
+        in_code_block = False
+        code_buffer = []
+
+        for raw_line in lines:
+            line = raw_line.rstrip()
+
+            # Code blocks
+            if line.startswith("```"):
+                if in_code_block:
+                    # End code block
+                    code_text = "\n".join(code_buffer)
+                    self.chat_display.insert("end", code_text + "\n", "md_code_block")
+                    code_buffer = []
+                    in_code_block = False
+                else:
+                    in_code_block = True
+                continue
+
+            if in_code_block:
+                code_buffer.append(line)
+                continue
+
+            # Horizontal rule
+            if re.match(r"^\s*---\s*$", line):
+                self.chat_display.insert("end", "\u2500" * 40 + "\n", "md_hr")
+                continue
+
+            # Headers
+            header_match = re.match(r"^(#{1,3})\s+(.*)$", line)
+            if header_match:
+                level = len(header_match.group(1))
+                content = header_match.group(2)
+                tag = f"md_header{level}"
+                self._render_inline(content, tag)
+                self.chat_display.insert("end", "\n", tag)
+                continue
+
+            # Blockquote
+            bq_match = re.match(r"^>\s?(.*)$", line)
+            if bq_match:
+                self.chat_display.insert("end", "\u2502 ", "md_blockquote")
+                self._render_inline(bq_match.group(1), "md_blockquote")
+                self.chat_display.insert("end", "\n", "md_blockquote")
+                continue
+
+            # Bullet list
+            bullet_match = re.match(r"^\s*[-*]\s+(.*)$", line)
+            if bullet_match:
+                self.chat_display.insert("end", "  \u2022 ", "md_bullet")
+                self._render_inline(bullet_match.group(1), "md_bullet")
+                self.chat_display.insert("end", "\n", "md_bullet")
+                continue
+
+            # Numbered list
+            num_match = re.match(r"^\s*(\d+)\.\s+(.*)$", line)
+            if num_match:
+                num = num_match.group(1)
+                content = num_match.group(2)
+                self.chat_display.insert("end", f"  {num}. ", "md_numbered")
+                self._render_inline(content, "md_numbered")
+                self.chat_display.insert("end", "\n", "md_numbered")
+                continue
+
+            # Regular line with inline formatting
+            if line:
+                self._render_inline(line, "assistant_body")
+                self.chat_display.insert("end", "\n", "assistant_body")
+
+    def _render_inline(self, text: str, base_tag: str):
+        """Render inline elements: bold, italic, code, strikethrough, icons, links."""
+        # Pattern order matters: code first, then links, then bold/italic/strike
+        pattern = re.compile(
+            r"("
+            r"`([^`]+)`"                           # inline code
+            r"|\*\*(.+?)\*\*"                      # bold
+            r"|\*(.+?)\*"                          # italic
+            r"|~~(.+?)~~"                          # strikethrough
+            r"|:([a-zA-Z0-9_]+):"                  # icon shortcode
+            r"|\[([^\]]+)\]\((https?://[^\s)]+)\)" # link
+            r")"
+        )
+
+        pos = 0
+        for match in pattern.finditer(text):
+            if match.start() > pos:
+                self.chat_display.insert("end", text[pos:match.start()], base_tag)
+
+            if match.group(2) is not None:      # inline code
+                self.chat_display.insert("end", match.group(2), "md_code")
+            elif match.group(3) is not None:  # bold
+                self.chat_display.insert("end", match.group(3), "md_bold")
+            elif match.group(4) is not None:  # italic
+                self.chat_display.insert("end", match.group(4), "md_italic")
+            elif match.group(5) is not None:  # strikethrough
+                self.chat_display.insert("end", match.group(5), "md_strike")
+            elif match.group(6) is not None:  # icon
+                self._insert_icon(match.group(6))
+            elif match.group(7) is not None:  # link
+                self._insert_link(match.group(7), match.group(8))
+
+            pos = match.end()
+
+        if pos < len(text):
+            self.chat_display.insert("end", text[pos:], base_tag)
+
+    # ------------------------------------------------------------------
+    # Tool message formatting
+    # ------------------------------------------------------------------
+
+    def _format_tool_message(self, text):
+        """Convert raw tool logs into a compact, readable tool card."""
+        match = re.match(r"Tool '([^']+)' (output|failed):\s*(.*)", text, re.DOTALL)
+        if match:
+            name, outcome, detail = match.groups()
+            icons = {
+                "web_search": "SEARCH", "fetch_url": "OPEN_IN_NEW",
+                "shell_exec": "TERMINAL", "open_url": "OPEN_IN_BROWSER",
+                "open_app": "APPS", "file_op": "FOLDER",
+                "system_info": "MONITORING", "screenshot": "SCREENSHOT",
+                "play_song": "MUSIC_NOTE", "weather": "PARTLY_CLOUDY_DAY",
+            }
+            icon = icons.get(name, "SETTINGS")
+            state = "DONE" if outcome == "output" else "FAILED"
+            return f"{icon}  {name.replace('_', ' ').upper()}  {state}", detail
+        if "denied" in text.lower():
+            return "BLOCK  ACTION DENIED", text
+        return "SETTINGS  TOOL", text
+
+    # ------------------------------------------------------------------
+    # Message insertion
+    # ------------------------------------------------------------------
+
+    def add_message(self, role, text):
+        """Thread-safe method to append message to display."""
+        def update():
+            ts = self._get_timestamp()
+            self.chat_display.configure(state="normal")
+
+            if role == "user":
+                self.chat_display.insert("end", f"YOU  ", "user_label")
+                self.chat_display.insert("end", f"{ts}\n", "timestamp")
+                self.chat_display.insert("end", f"{text}\n\n", "user_body")
+
+            elif role == "assistant":
+                self.chat_display.insert("end", f"HARVIS  ", "assistant_label")
+                self.chat_display.insert("end", f"{ts}\n", "timestamp")
+                self._insert_assistant_text(text)
+                self.chat_display.insert("end", "\n\n", "assistant_body")
+
+            elif role == "tool":
+                title, detail = self._format_tool_message(text)
+                self.chat_display.insert("end", f"{title}\n", "tool_label")
+                self.chat_display.insert("end", f"{detail}\n\n", "tool_body")
+
+            else:
+                clean_text = text.strip().strip("*")
+                if clean_text.lower().startswith("invoking tool"):
+                    clean_text = f"PENDING  {clean_text.replace('Invoking tool', 'Working with', 1)}"
+                self.chat_display.insert("end", f"{clean_text}\n\n", "system")
+
+            self.chat_display.configure(state="disabled")
+            self.chat_display.see("end")
+
+        self.root.after(0, update)
+
+    # ------------------------------------------------------------------
+    # Indicator animation (idle CPU fix)
+    # ------------------------------------------------------------------
+
+    def animate_indicator(self):
+        """Pulsating indicator with idle CPU optimization (200ms when idle)."""
+        if self.current_state in {"Listening", "Recording"}:
+            color = "#10b981"
+            r = math.sin(time.time() * 5) * 3 + 12
+            delay = 20
+        elif self.current_state == "Transcribing":
+            color = "#f59e0b"
+            r = math.sin(time.time() * 7) * 2 + 12
+            delay = 20
+        elif self.current_state == "Thinking":
+            color = "#3b82f6"
+            r = math.sin(time.time() * 8) * 3 + 12
+            delay = 20
+        elif self.current_state == "Speaking":
+            color = "#8b5cf6"
+            r = math.sin(time.time() * 6) * 3 + 12
+            delay = 20
+        elif self.current_state == "Error":
+            color = "#ef4444"
+            r = math.sin(time.time() * 10) * 2 + 13
+            delay = 20
+        else:
+            color = "#484f58"
+            r = 10
+            delay = 200  # Idle: 5fps instead of 60fps
+
+        self.indicator_canvas.delete("glow")
+        self.indicator_canvas.create_oval(
+            18 - r, 18 - r, 18 + r, 18 + r,
+            fill=color,
+            outline="",
+            tags="glow"
+        )
+
+        self.root.after(delay, self.animate_indicator)
+
+    # ------------------------------------------------------------------
+    # Themed confirmation dialog (replaces messagebox.askyesno)
+    # ------------------------------------------------------------------
+
+    def _show_themed_confirm(self, message: str) -> bool:
+        """Show a dark themed confirmation dialog. Returns True/False."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("HARVIS Security Guardrail")
+        dialog.configure(bg=self.bg_color)
+        dialog.geometry("420x180")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Center dialog
+        dialog.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (dialog.winfo_width() // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (dialog.winfo_height() // 2)
+        dialog.geometry(f"+{x}+{y}")
+
+        # Message
+        msg_label = tk.Label(
+            dialog,
+            text=message,
+            font=("Inter", 11),
+            fg=self.text_color,
+            bg=self.bg_color,
+            wraplength=380,
+            justify="center",
+            padx=20,
+            pady=20
+        )
+        msg_label.pack(fill="both", expand=True)
+
+        # Buttons frame
+        btn_frame = tk.Frame(dialog, bg=self.bg_color, pady=10)
+        btn_frame.pack(fill="x", padx=20)
+
+        result = [False]
+
+        def on_allow():
+            result[0] = True
+            dialog.destroy()
+
+        def on_deny():
+            result[0] = False
+            dialog.destroy()
+
+        allow_btn = tk.Button(
+            btn_frame,
+            text="ALLOW",
+            font=("Inter", 11, "bold"),
+            bg="#238636",
+            fg=self.text_color,
+            activebackground="#2ea043",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=on_allow,
+            width=10,
+            padx=12,
+            pady=6
+        )
+        allow_btn.pack(side="right", padx=(8, 0))
+
+        deny_btn = tk.Button(
+            btn_frame,
+            text="DENY",
+            font=("Inter", 11, "bold"),
+            bg="#cf222e",
+            fg=self.text_color,
+            activebackground="#da3633",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            command=on_deny,
+            width=10,
+            padx=12,
+            pady=6
+        )
+        deny_btn.pack(side="right")
+
+        # Handle dialog close as deny
+        dialog.protocol("WM_DELETE_WINDOW", on_deny)
+
+        # Wait for dialog
+        self.root.wait_window(dialog)
+        return result[0]
+
+    # ------------------------------------------------------------------
+    # Thread-safe confirmation
+    # ------------------------------------------------------------------
+
+    def request_confirmation_safely(self, message: str) -> bool:
+        """Thread-safe method to show a confirmation dialog."""
+        event = threading.Event()
+        result_container = [False]
+
+        req = {
+            "message": message,
+            "event": event,
+            "result": result_container
+        }
+
+        self.confirm_queue.put(req)
+        self.root.event_generate("<<CheckConfirm>>", when="tail")
+        event.wait()
+        return result_container[0]
+
+    def handle_confirm_request(self, event=None):
+        """Runs in the GUI (main) thread. Displays themed confirmation."""
+        try:
+            while not self.confirm_queue.empty():
+                req = self.confirm_queue.get_nowait()
+                confirmed = self._show_themed_confirm(req["message"])
+                req["result"][0] = confirmed
+                req["event"].set()
+        except Exception as e:
+            logger.error(f"Error in confirmation handler: {e}")

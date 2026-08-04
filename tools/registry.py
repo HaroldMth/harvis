@@ -8,6 +8,18 @@ from tools.desktop import (
 from tools.timer import timer
 from db.store import log_tool_call
 
+import os
+import sys
+import importlib.util
+import re
+import logging
+
+logger = logging.getLogger("harvis.registry")
+
+# ------------------------------------------------------------------
+# Built-in tools schema
+# ------------------------------------------------------------------
+
 TOOLS_SCHEMA = [
     {
         "name": "open_app",
@@ -109,7 +121,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "web_search",
-        "description": "Search the web for current information, facts, news, definitions, or how-to answers. Returns text results when available; use open_in_browser=true to open results in the browser.",
+        "description": "Search the web for current information, facts, news, definitions, or how-to answers. Also useful for weather if the weather tool is unavailable. Returns text results when available; use open_in_browser=true to open results in the browser.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -301,6 +313,104 @@ TOOLS_SCHEMA = [
     }
 ]
 
+# ------------------------------------------------------------------
+# Plugin auto-discovery
+# ------------------------------------------------------------------
+
+_PLUGIN_CACHE = None
+
+
+def _load_plugins():
+    """Auto-discover all plugins in tools/plugins/*.py."""
+    global _PLUGIN_CACHE
+    if _PLUGIN_CACHE is not None:
+        return _PLUGIN_CACHE
+
+    plugins = []
+    plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
+
+    if not os.path.isdir(plugins_dir):
+        _PLUGIN_CACHE = plugins
+        return plugins
+
+    for filename in sorted(os.listdir(plugins_dir)):
+        if not filename.endswith(".py") or filename.startswith("_"):
+            continue
+
+        filepath = os.path.join(plugins_dir, filename)
+        mod_name = f"tools.plugins.{filename[:-3]}"
+
+        try:
+            spec = importlib.util.spec_from_file_location(mod_name, filepath)
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[mod_name] = mod
+            spec.loader.exec_module(mod)
+
+            schema = getattr(mod, "PLUGIN_SCHEMA", None)
+            handler = getattr(mod, "handler", None)
+
+            if schema and handler:
+                plugins.append({"schema": schema, "handler": handler, "module": mod_name})
+                logger.info(f"Loaded plugin: {schema.get('name', filename[:-3])}")
+        except Exception as e:
+            logger.warning(f"Failed to load plugin {filename}: {e}")
+
+    _PLUGIN_CACHE = plugins
+    return plugins
+
+
+def _plugin_matcher(query: str, examples: list) -> bool:
+    """Simple keyword-based matcher using plugin examples."""
+    q = query.lower()
+    for ex in examples:
+        words = re.findall(r"[a-zA-Z]{3,}", ex.lower())
+        if any(w in q for w in words):
+            return True
+    return False
+
+
+def _get_plugin_schemas():
+    """Return plugin schemas merged into the main TOOLS_SCHEMA list."""
+    schemas = []
+    for plugin in _load_plugins():
+        s = plugin["schema"]
+        schemas.append({
+            "name": s.get("name"),
+            "description": s.get("description", ""),
+            "parameters": s.get("parameters", {"type": "object", "properties": {}}),
+        })
+    return schemas
+
+
+def _try_plugin_dispatch(name: str, args: dict) -> dict:
+    """Try to dispatch to a plugin by name. Returns None if not a plugin."""
+    for plugin in _load_plugins():
+        if plugin["schema"].get("name") == name:
+            try:
+                query = args.get("query", "") if isinstance(args, dict) else str(args)
+                result = plugin["handler"](query)
+                if isinstance(result, str):
+                    return {"success": True, "output": result}
+                return result
+            except Exception as e:
+                logger.error(f"Plugin {name} error: {e}")
+                return {"success": False, "error": str(e)}
+    return None
+
+
+def _try_plugin_match(query: str) -> tuple:
+    """Check if any plugin should handle this query. Returns (name, args) or (None, None)."""
+    for plugin in _load_plugins():
+        examples = plugin["schema"].get("examples", [])
+        if _plugin_matcher(query, examples):
+            return (plugin["schema"].get("name"), {"query": query})
+    return (None, None)
+
+
+# ------------------------------------------------------------------
+# Tool dispatch
+# ------------------------------------------------------------------
+
 TOOL_DISPATCH = {
     "open_app": open_app,
     "open_url": open_url,
@@ -321,6 +431,11 @@ TOOL_DISPATCH = {
 }
 
 
+def get_all_tools_schema():
+    """Return built-in + plugin schemas for LLM tool calling."""
+    return TOOLS_SCHEMA + _get_plugin_schemas()
+
+
 def dispatch(name, args):
     """
     Looks up tool by name, runs it, logs the outcome, and returns a standard dict.
@@ -328,22 +443,28 @@ def dispatch(name, args):
     """
     result = None
     status = "success"
-    try:
-        if args is None:
-            args = {}
 
-        handler = TOOL_DISPATCH.get(name)
-        if handler:
-            result = handler(**args)
-        else:
-            result = {"success": False, "error": f"Tool '{name}' not found."}
+    # Try plugin dispatch first
+    plugin_result = _try_plugin_dispatch(name, args)
+    if plugin_result is not None:
+        result = plugin_result
+    else:
+        try:
+            if args is None:
+                args = {}
+
+            handler = TOOL_DISPATCH.get(name)
+            if handler:
+                result = handler(**args)
+            else:
+                result = {"success": False, "error": f"Tool '{name}' not found."}
+                status = "failed"
+        except TypeError as e:
+            result = {"success": False, "error": f"Invalid arguments for tool '{name}': {e}"}
             status = "failed"
-    except TypeError as e:
-        result = {"success": False, "error": f"Invalid arguments for tool '{name}': {e}"}
-        status = "failed"
-    except Exception as e:
-        result = {"success": False, "error": str(e)}
-        status = "failed"
+        except Exception as e:
+            result = {"success": False, "error": str(e)}
+            status = "failed"
 
     if result.get("status") == "denied":
         status = "denied"

@@ -1,115 +1,81 @@
+"""TTS using custom API.
+
+Endpoint: https://apis.davidcyril.name.ng/tools/speechma
+"""
+
 import os
-import requests
+import re
 import urllib.parse
-import subprocess
-import asyncio
 import logging
-from config import POLLINATIONS_API_KEY
-from db.store import update_provider_status
+import subprocess
+import tempfile
+import requests
 
 logger = logging.getLogger("harvis.tts")
 
-def play_audio(file_path):
-    try:
-        # Try mpv first
-        res = subprocess.run(["which", "mpv"], capture_output=True, text=True)
-        if res.returncode == 0:
-            subprocess.run(["mpv", "--no-video", file_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return True
-    except Exception as e:
-        logger.warning(f"mpv playback failed: {e}")
+def clean_text_for_tts(text: str) -> str:
+    """Strip markdown/icons/emojis before sending to API."""
+    if not text:
+        return ""
+    # We strip complex markdown but can leave basic punctuation
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+    text = re.sub(r':[a-zA-Z0-9_]+:', '', text)
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'~~(.+?)~~', r'\1', text)
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*[-*]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^>\s?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*---+\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    text = text.replace('|', ' ')
+    text = re.sub(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]+', '', text)
+    text = re.sub(r'\n+', ' ', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
 
-    try:
-        # Fallback to paplay
-        res = subprocess.run(["which", "paplay"], capture_output=True, text=True)
-        if res.returncode == 0:
-            if file_path.endswith(".mp3"):
-                wav_path = file_path.replace(".mp3", ".wav")
-                # convert using ffmpeg
-                subprocess.run(["ffmpeg", "-y", "-i", file_path, wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-                subprocess.run(["paplay", wav_path], check=True)
-                if os.path.exists(wav_path):
-                    os.remove(wav_path)
-            else:
-                subprocess.run(["paplay", file_path], check=True)
-            return True
-    except Exception as e:
-        logger.error(f"paplay playback failed: {e}")
 
-    return False
-
-def tts_pollinations(text, out_path="reply.mp3"):
-    # URL encode the text for Pollinations TTS
-    encoded_text = urllib.parse.quote(text)
-    url = f"https://text.pollinations.ai/{encoded_text}?model=openai-audio&voice=alloy"
-    headers = {}
-    if POLLINATIONS_API_KEY:
-        headers["Authorization"] = f"Bearer {POLLINATIONS_API_KEY}"
-        
-    response = requests.get(url, headers=headers, timeout=10)
-    if response.status_code == 200:
-        with open(out_path, "wb") as f:
-            f.write(response.content)
-        return True
-    else:
-        raise RuntimeError(f"Pollinations TTS failed with status {response.status_code}: {response.text}")
-
-async def tts_edgetts_async(text, out_path="reply.mp3"):
-    import edge_tts
-    voice = "en-US-GuyNeural"
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(out_path)
-    return True
-
-def tts_edgetts(text, out_path="reply.mp3"):
-    try:
-        # Use existing event loop if running, otherwise run new one
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-            
-        if loop and loop.is_running():
-            # In an active event loop, run thread-safely or task-safely
-            import nest_asyncio
-            nest_asyncio.apply()
-            loop.run_until_complete(tts_edgetts_async(text, out_path))
-        else:
-            asyncio.run(tts_edgetts_async(text, out_path))
-        return True
-    except Exception as e:
-        raise RuntimeError(f"Edge TTS failed: {e}")
-
-def text_to_speech(text, out_path="reply.mp3"):
+def text_to_speech(text: str, out_path: str = "reply.mp3") -> bool:
     """
-    Converts text to speech and plays it.
-    Chain:
-    1. Pollinations
-    2. Edge TTS
+    Main entry point: clean text, fetch from API, and play with ffplay.
+    Returns True on success.
     """
-    success = False
-    
-    # 1. Pollinations
-    try:
-        tts_pollinations(text, out_path)
-        update_provider_status("pollinations_tts", True)
-        success = True
-    except Exception as e:
-        logger.warning(f"Pollinations TTS failed: {e}")
-        update_provider_status("pollinations_tts", False)
-
-    # 2. Edge TTS
-    if not success:
-        try:
-            tts_edgetts(text, out_path)
-            update_provider_status("edge_tts", True)
-            success = True
-        except Exception as e:
-            logger.error(f"Edge TTS failed: {e}")
-            update_provider_status("edge_tts", False)
-
-    if success:
-        play_audio(out_path)
-        return True
+    clean_text = clean_text_for_tts(text)
+    if not clean_text:
+        logger.warning("No speakable text after cleaning.")
+        return False
         
-    raise RuntimeError("All TTS providers failed.")
+    try:
+        logger.info("Using Speechma TTS API...")
+        encoded_text = urllib.parse.quote(clean_text)
+        url = f"https://apis.davidcyril.name.ng/tools/speechma?text={encoded_text}&voice=Andrew%20Multilingual&pitch=2&rate=1"
+        
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()
+        
+        fd, tmp_path = tempfile.mkstemp(suffix=".mp3")
+        os.close(fd)
+        
+        with open(tmp_path, "wb") as f_out:
+            for chunk in response.iter_content(chunk_size=8192):
+                f_out.write(chunk)
+                
+        logger.info(f"Audio saved to {tmp_path}, playing...")
+        subprocess.run(
+            ["ffplay", "-nodisp", "-autoexit", tmp_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
+        os.remove(tmp_path)
+        return True
+    except Exception as e:
+        logger.error(f"Speechma TTS failed: {e}")
+        return False
+
+
+def unload():
+    """No-op."""
+    pass

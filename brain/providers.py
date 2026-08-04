@@ -8,16 +8,17 @@ from config import (
     OPENROUTER_API_KEY,
     CEREBRAS_API_KEY,
     MISTRAL_API_KEY,
-    COHERE_API_KEY
+    COHERE_API_KEY,
+    OMNIROUTE_API_KEY
 )
-from tools.registry import TOOLS_SCHEMA
+from tools.registry import get_all_tools_schema
 from brain.prompts import SYSTEM_PROMPT
 
 logger = logging.getLogger("harvis.providers")
 
 # Helper to map standard tools schema to OpenAI/Cohere format
 def get_openai_tools():
-    return [{"type": "function", "function": t} for t in TOOLS_SCHEMA]
+    return [{"type": "function", "function": t} for t in get_all_tools_schema()]
 
 # Mapper functions for history
 def map_history_to_gemini(history):
@@ -176,7 +177,7 @@ def call_gemini(history):
         "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "contents": contents,
         "tools": [{
-            "function_declarations": TOOLS_SCHEMA
+            "function_declarations": get_all_tools_schema()
         }]
     }
     
@@ -388,3 +389,28 @@ def call_cohere(history):
         }
         
     return {"type": "text", "content": "", "tool_name": None, "tool_args": None}
+
+def call_omniroute(history):
+    if not OMNIROUTE_API_KEY:
+        raise ValueError("OmniRoute API key is not configured.")
+        
+    url = "http://localhost:20128/v1/chat/completions"
+    messages = map_history_to_openai(history)
+    
+    payload = {
+        "model": "auto",
+        "stream": False,
+        "messages": messages,
+        "tools": get_openai_tools()
+    }
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OMNIROUTE_API_KEY}"
+    }
+    
+    response = requests.post(url, headers=headers, json=payload, timeout=15)
+    if response.status_code != 200:
+        raise RuntimeError(f"OmniRoute API failed with status {response.status_code}: {response.text}")
+        
+    return normalize_openai(response.json())
