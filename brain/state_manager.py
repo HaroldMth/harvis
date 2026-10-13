@@ -47,7 +47,7 @@ class TaskManager:
 
         if not os.path.exists(self.plan_path):
             with open(self.plan_path, "w", encoding="utf-8") as f:
-                f.write(f"# Goal: {goal}\n\n## Milestones\n[ ] 1. Analyze initial state\n")
+                f.write(f"# Goal: {goal}\n")
 
         if not os.path.exists(self.notes_path):
             with open(self.notes_path, "w", encoding="utf-8") as f:
@@ -82,6 +82,12 @@ class TaskManager:
         """Overwrites plan.md with updated milestones."""
         with open(self.plan_path, "w", encoding="utf-8") as f:
             f.write(plan_text.strip() + "\n")
+
+    def append_trace(self, record: dict):
+        """Appends one JSON line per step to trace.jsonl (full, untruncated history)."""
+        record = dict(record, ts=time.time())
+        with open(os.path.join(self.dir, "trace.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, default=str) + "\n")
 
     def read_notes(self) -> str:
         """Reads notes.md."""

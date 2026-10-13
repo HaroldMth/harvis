@@ -68,42 +68,10 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
         if not confirmed:
             return {"success": False, "error": "User denied execution.", "status": "denied"}
 
-    # 3. Handle continuous streaming commands (auto-bound -f, -w, ping, watch, top, etc.)
+    # 3. Run the command exactly as given. Commands that never exit (tail -f,
+    # watch, ping, top...) are bounded by the timeout below, which returns a
+    # snapshot and flags `timed_out`; the caller sees what actually ran.
     cmd_processed = cmd.strip()
-
-    # Fix continuous journalctl -f
-    if "journalctl" in cmd_processed and ("-f" in cmd_processed or "--follow" in cmd_processed):
-        cmd_processed = re.sub(r"\s+(-f|--follow)\b", "", cmd_processed)
-        if "-n" not in cmd_processed and "--lines" not in cmd_processed:
-            cmd_processed += " -n 50 --no-pager"
-
-    # Fix continuous tail -f
-    if "tail" in cmd_processed and ("-f" in cmd_processed or "--follow" in cmd_processed):
-        cmd_processed = re.sub(r"\s+(-f|--follow)\b", "", cmd_processed)
-        if "-n" not in cmd_processed and "--lines" not in cmd_processed:
-            cmd_processed += " -n 50"
-
-    # Fix continuous dmesg -w
-    if "dmesg" in cmd_processed and ("-w" in cmd_processed or "--follow" in cmd_processed):
-        cmd_processed = re.sub(r"\s+(-w|--follow)\b", "", cmd_processed)
-        cmd_processed = f"{cmd_processed} | tail -n 50"
-
-    # Fix watch command (run inner command once)
-    if cmd_processed.startswith("watch ") or " watch " in cmd_processed:
-        cmd_processed = re.sub(r"\bwatch\s+(-[a-zA-Z0-9]+\s+)*", "", cmd_processed)
-
-    # Fix unbounded ping
-    if re.search(r"\bping\b", cmd_processed) and "-c" not in cmd_processed:
-        cmd_processed = re.sub(r"\bping\b", "ping -c 4", cmd_processed)
-
-    # Fix top / htop
-    if re.search(r"\b(top|htop)\b", cmd_processed):
-        cmd_processed = "top -b -n 1 | head -n 35"
-
-    # Fix docker logs -f
-    if "docker logs" in cmd_processed and ("-f" in cmd_processed or "--follow" in cmd_processed):
-        cmd_processed = re.sub(r"\s+(-f|--follow)\b", "", cmd_processed)
-        cmd_processed += " --tail 50"
 
     HARVIS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -214,7 +182,8 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
             if captured:
                 return {
                     "success": True,
-                    "output": f"[Log snapshot captured after {wait_time}s wait time]:\n{captured}"
+                    "timed_out": True,
+                    "output": f"[Command did not exit; killed after {wait_time}s. Output so far]:\n{captured}"
                 }
             return {"success": False, "error": f"Command '{cmd}' timed out after {wait_time}s with no output."}
     except Exception as e:

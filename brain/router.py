@@ -134,6 +134,66 @@ def prepare_vision_request(prompt: str, images: list) -> list:
     return content
 
 
+def complete(history, system_prompt=None, mode="normal", stream_callback=None,
+             extra_tools=None, model_override=None):
+    """One model turn through the provider chain, with no session/DB side effects.
+
+    Same provider order and model fallback as ask(), but the caller owns the
+    history. Returns the response dict, or None if every provider failed.
+    extra_tools (e.g. the harness `finish` tool) are only offered to OmniRoute;
+    other providers can still end a task with a plain text reply.
+    """
+    pool = omniroute_options(mode).get("model", "auto/smart:pro")
+    system_prompt = (system_prompt or "") + (
+        f"\n\n[IDENTITY] You are HARVIS on OmniRoute pool `{pool}`. "
+        "Only capable models are in this pool \u2014 not flash, lite, mini, nano, or haiku-class. "
+        "If asked which model you are, answer: HARVIS, routed through that OmniRoute pool. "
+        "You will not see a single fixed lab model name unless the gateway reports one."
+    )
+
+    for provider in PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS):
+        name, func = provider["name"], provider["func"]
+        try:
+            if name == "omniroute":
+                last_err = None
+                for candidate in ([model_override] if model_override else get_fallback_chain(mode)):
+                    try:
+                        res = func(history, system_prompt=system_prompt, stream_callback=stream_callback,
+                                   model=candidate, extra_tools=extra_tools)
+                        res["provider"] = name
+                        res["model"] = res.get("routed_model") or candidate
+                        update_provider_status(name, True)
+                        return res
+                    except Exception as m_err:
+                        if stream_callback and "Cancelled by user" in str(m_err):
+                            raise
+                        last_err = m_err
+                        logger.warning(f"OmniRoute candidate {candidate} failed: {m_err}")
+                if last_err:
+                    raise last_err
+            else:
+                try:
+                    res = func(history, system_prompt=system_prompt, stream_callback=stream_callback)
+                except TypeError:
+                    res = func(history, system_prompt=system_prompt)
+                res["provider"] = name
+                res["model"] = res.get("routed_model") or name
+                update_provider_status(name, True)
+                return res
+        except Exception as e:
+            if "Cancelled by user" in str(e):
+                raise
+            logger.warning(f"Provider {name} failed: {e}")
+            update_provider_status(name, False)
+            log_issue("PROVIDER_FAIL", f"Provider '{name}' failed in mode '{mode}'",
+                      details=str(e), recommendation=f"Check API key, quota limits, or model route mapping for '{name}'.")
+
+    log_issue("SYSTEM", f"All providers failed in mode '{mode}'",
+              details=f"History count: {len(history)}.",
+              recommendation="Verify network connection, gateway availability, and key configuration.")
+    return None
+
+
 def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, stream_callback=None, thinking_mode=False, mode="normal", model_override=None):
     """
     Queries the brain fallback chain for a response with persistent chat memory.

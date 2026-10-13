@@ -9,3 +9,4 @@ reply.mp3
 audio/silero_vad.onnx
 .vscode/
 whatsapp/auth_info_baileys/
+*.patch

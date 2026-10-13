@@ -29,12 +29,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from brain.router import ask
+from brain.router import ask, complete, detect_images_in_prompt, prepare_vision_request
 from brain.modes import parse_slash, switch_message, status_message, DEFAULT_MODE, get_engine
 from brain.harness import HarnessRunner
 from tools.registry import dispatch
 from subagents.runner import spawn_subagent
-from db.store import clear_session
+from db.store import clear_session, get_history, save_message, set_harvis_busy
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS
 
 logging.basicConfig(
@@ -417,7 +417,6 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
     initial_badge = cfg["badge"]
     status_msg = await update.message.reply_text(initial_badge, parse_mode="Markdown", reply_markup=stop_keyboard)
 
-    max_turns = 35
     current_prompt = prompt_text
     role = "user"
     final_text = ""
@@ -493,108 +492,84 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                 loop
                             )
 
-        for turn in range(max_turns):
-            if cancel_evt.is_set():
-                final_text = "🛑 *Generation stopped by Harold.*"
-                break
-            stream_buffer = ""
-            response = await asyncio.to_thread(
-                ask,
-                session_id,
-                current_prompt,
-                role=role,
-                system_prompt=TELEGRAM_SYSTEM_PROMPT,
-                stream_callback=tg_stream_cb,
-                thinking_mode=False,
-                mode=mode,
-                model_override=model_override,
-            )
+        # ── Run the request through the autonomous harness ──
+        # The agent decides when it is done (finish tool or plain reply); the bot only
+        # renders progress. Streaming, stop button, and chat memory are preserved.
+        TOOL_EMOJI = {
+            "shell_exec": "💻", "system_info": "🖥️", "send_telegram": "📨",
+            "check_emails": "📬", "send_email": "📧", "screenshot": "📸",
+            "open_app": "🚀", "play_song": "🎵", "notify": "🔔",
+            "volume_control": "🔊", "brightness_control": "💡", "timer": "⏱️",
+            "media_control": "⏯️", "weather": "🌤️", "clipboard": "📋",
+            "spawn_subagent": "🤖", "web_search": "🔍", "close_app": "🛑",
+        }
+        pending = {}
 
-            if response.get("type") == "text":
-                content = response.get("content", "")
-                continuation_signals = [
-                    "now i will", "now i'll", "next, i will", "next i'll", "moving on to",
-                    "next step", "proceeding to", "i will now", "continuing with",
-                    "now creating", "now writing", "now implementing", "let's now",
-                    "now let's", "next up"
-                ]
-                content_lower = content.lower()
-                is_intermediate = any(sig in content_lower for sig in continuation_signals)
-                if is_intermediate and turn < max_turns - 1:
-                    logger.info(f"Intermediate thought detected: '{content[:80]}'. Continuing tool loop...")
-                    await _safe_edit(status_msg, f"⚙️ {content[:160]}…")
-                    current_prompt = "Understood. Proceed immediately with executing the next tool action. Do not stop until the entire task is verified and complete."
-                    role = "user"
-                    continue
-                else:
-                    final_text = content
-                    break
+        async def on_progress(ev):
+            nonlocal stream_buffer, last_tool_name, last_tool_output, last_tool_success
+            kind = ev.get("type")
+            if kind == "thinking":
+                stream_buffer = ""  # each model turn streams into a fresh buffer
+            elif kind == "acting":
+                name, args = ev["tool_name"], ev.get("tool_args") or {}
+                last_tool_name = name
+                step_count[0] = ev["step"]
+                preview = ", ".join(f"{k}={repr(v)[:40]}" for k, v in list(args.items())[:3]) or "no args"
+                emoji = TOOL_EMOJI.get(name, "🛠️")
+                await _safe_edit(status_msg, f"⚙️ Step {ev['step']}: `{name}`…")
+                bubble = await update.message.reply_text(f"{emoji} `{name}({preview})`", parse_mode="Markdown")
+                step_bubbles.append(bubble)
+                pending[ev["step"]] = (bubble, emoji)
+            elif kind == "checked":
+                bubble, emoji = pending.pop(ev["step"], (None, "🛠️"))
+                out = (ev.get("output") or "").strip()
+                last_tool_success = bool(ev.get("success"))
+                last_tool_output = out if last_tool_success else f"Error: {out}"
+                if bubble:
+                    if last_tool_success:
+                        short = out[:300] + ("…" if len(out) > 300 else "")
+                        await _safe_edit(bubble, f"{emoji} `{ev['tool_name']}` ✅\n```\n{short}\n```")
+                    else:
+                        await _safe_edit(bubble, f"{emoji} `{ev['tool_name']}` ❌\n`{out[:200]}`")
+                await _safe_edit(status_msg, f"{'✅' if last_tool_success else '❌'} Step {ev['step']}: `{ev['tool_name']}`")
 
-            elif response.get("type") == "tool_call":
-                tool_name = response["tool_name"]
-                tool_args = response.get("tool_args", {}) or {}
-                last_tool_name = tool_name
+        # Chat memory: earlier conversation goes in as context, minus legacy tool-call plumbing.
+        prefix = []
+        for m in get_history(session_id, limit=20):
+            c = m.get("content")
+            if m.get("role") in ("user", "assistant") and isinstance(c, str) and c.strip() \
+                    and not (c.startswith("{") and '"tool_call"' in c) and not c.startswith("[TOOL EXECUTION RESULT]"):
+                prefix.append({"role": m["role"], "content": c})
 
-                TOOL_EMOJI = {
-                    "shell_exec": "💻", "system_info": "🖥️", "send_telegram": "📨",
-                    "check_emails": "📬", "send_email": "📧", "screenshot": "📸",
-                    "open_app": "🚀", "play_song": "🎵", "notify": "🔔",
-                    "volume_control": "🔊", "brightness_control": "💡", "timer": "⏱️",
-                    "media_control": "⏯️", "weather": "🌤️", "clipboard": "📋",
-                    "spawn_subagent": "🤖", "web_search": "🔍", "close_app": "🛑",
-                }
-                emoji = TOOL_EMOJI.get(tool_name, "🛠️")
+        images = detect_images_in_prompt(current_prompt)
+        goal = prepare_vision_request(current_prompt, images) if images else current_prompt
+        saved_user = re.sub(r"\[IMAGE:\s*data:image/[a-zA-Z]+;base64,[a-zA-Z0-9+/=]+\]", "[IMAGE ATTACHED]", current_prompt) \
+            if images else current_prompt
+        save_message(session_id, "user", saved_user)
 
-                if tool_args:
-                    args_preview = ", ".join(
-                        f"{k}={repr(v)[:40]}" for k, v in list(tool_args.items())[:3]
-                    )
-                else:
-                    args_preview = "no args"
+        engine = (lambda history, **kw: complete(history, model_override=model_override, **kw)) if model_override else None
+        runner = HarnessRunner(mode=mode, engine=engine, system_prompt=TELEGRAM_SYSTEM_PROMPT, history_prefix=prefix)
 
-                step_count[0] += 1
-                n = step_count[0]
+        set_harvis_busy(True)
+        try:
+            result = await runner.run(goal, progress_callback=on_progress, cancel_event=cancel_evt,
+                                      stream_callback=tg_stream_cb)
+        finally:
+            set_harvis_busy(False)
 
-                # Update main progress bubble
-                await _safe_edit(status_msg, f"⚙️ Step {n}: `{tool_name}`…")
+        status = result.get("status")
+        if status == "cancelled":
+            final_text = "🛑 *Generation stopped by Harold.*"
+        elif status in ("finished", "answered"):
+            final_text = result.get("output") or ""
+            if status == "finished" and result.get("success") is False and final_text:
+                final_text = f"⚠️ {final_text}"
+        else:  # timeout, step_limit_reached, stuck, provider_error
+            final_text = f"⚠️ {result.get('message', 'Stopped early.')} Say 'continue' to pick up where I left off."
 
-                # New per-tool bubble (running state)
-                step_bubble = await update.message.reply_text(
-                    f"{emoji} `{tool_name}({args_preview})`",
-                    parse_mode="Markdown"
-                )
-                step_bubbles.append(step_bubble)
-
-                tool_res = await asyncio.to_thread(dispatch, tool_name, tool_args)
-
-                if tool_res.get("success"):
-                    last_tool_success = True
-                    result_text = tool_res.get("output", "")
-                    last_tool_output = result_text
-                    short_result = result_text[:300] + ("…" if len(result_text) > 300 else "")
-                    await _safe_edit(
-                        step_bubble,
-                        f"{emoji} `{tool_name}` ✅\n```\n{short_result}\n```"
-                    )
-                    await _safe_edit(status_msg, f"✅ Step {n} done: `{tool_name}`")
-                else:
-                    last_tool_success = False
-                    result_text = tool_res.get("error", "Unknown error")
-                    last_tool_output = f"Error: {result_text}"
-                    await _safe_edit(
-                        step_bubble,
-                        f"{emoji} `{tool_name}` ❌\n`{result_text[:200]}`"
-                    )
-                    await _safe_edit(status_msg, f"❌ Step {n} failed: `{tool_name}`")
-
-                current_prompt = json.dumps({
-                    "tool_name": tool_name,
-                    "result": result_text,
-                    "status": "success" if last_tool_success else "failed"
-                })
-                role = "tool"
-            else:
-                break
+        save_message(session_id, "assistant",
+                     final_text if status in ("finished", "answered", "cancelled")
+                     else f"{final_text}\n(step trace: {result.get('trace')})")
 
         # Process thinking tags if present in final text
         think_content = ""
@@ -615,8 +590,6 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
         if not final_text:
             if think_content:
                 final_text = think_content
-            elif step_count[0] >= max_turns:
-                final_text = f"⚠️ Reached the turn limit ({max_turns} steps) while building. Say 'continue' to resume where I left off!"
             elif last_tool_name:
                 output_snippet = (last_tool_output or "").strip()
                 if last_tool_success:

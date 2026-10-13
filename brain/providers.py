@@ -630,7 +630,7 @@ def _omniroute_routed_id(response, body=None, stream_model=None):
     return stream_model
 
 
-def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model, reasoning_effort):
+def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model, reasoning_effort, extra_tools=None):
     url = "http://localhost:20128/v1/chat/completions"
     messages = map_history_to_openai(history, system_prompt)
     use_stream = stream_callback is not None
@@ -643,6 +643,10 @@ def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model
         payload["reasoning_effort"] = reasoning_effort
     if enable_tools:
         payload["tools"] = get_openai_tools()
+    if extra_tools:
+        payload["tools"] = list(payload.get("tools", [])) + [
+            {"type": "function", "function": t} for t in extra_tools
+        ]
 
     headers = {
         "Content-Type": "application/json",
@@ -747,13 +751,14 @@ def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model
     }
 
 
-def call_omniroute(history, system_prompt=None, stream_callback=None, enable_tools=True, model="auto/smart:pro", reasoning_effort=None):
+def call_omniroute(history, system_prompt=None, stream_callback=None, enable_tools=True, model="auto/smart:pro", reasoning_effort=None, extra_tools=None):
     if not OMNIROUTE_API_KEY:
         raise ValueError("OmniRoute API key is not configured.")
 
     # Do not strip :pro on empty pools. That fail-open includes flash/lite models.
     return _omniroute_once(
-        history, system_prompt, stream_callback, enable_tools, model, reasoning_effort
+        history, system_prompt, stream_callback, enable_tools, model, reasoning_effort,
+        extra_tools=extra_tools,
     )
 
 

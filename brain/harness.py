@@ -1,303 +1,241 @@
-"""Autonomous Self-Verifying Execution Harness for HARVIS.
+"""Agent execution harness for HARVIS.
 
-Implements the Agent Blueprint state machine:
-  OBSERVE -> THINK -> ACT -> CHECK -> RECORD -> DECIDE
+The harness does bookkeeping; the agent makes the decisions.
 
-Invariants enforced:
-1. No action without prior observation.
-2. Every action has an automated verification check.
-3. Stuck detection via action signature hashing (2x replan, 4x rollback, 5x escalate).
-4. State on disk with lean working context (< 3,500 tokens).
-5. Bounded autonomy (step and duration budgets).
+  * The agent decides when it is done (`finish` tool, or a plain text reply).
+    No phrase matching, no step-count shortcuts.
+  * The agent sees real history (its own tool calls and their results), not a
+    one-observation summary. Older steps roll off a size window but stay in
+    <task_dir>/trace.jsonl.
+  * The harness reports facts (budget used, repeated actions) as [harness]
+    notes. It does not rewrite plans, force rollbacks, or grade the agent's work.
+  * Hard stops are limited to: user cancel, the budgets in brain/settings.py,
+    and an extreme repeat count.
 """
 
-import os
-import re
 import json
 import time
 import uuid
 import logging
 import asyncio
+import inspect
+from collections import deque
 
-from brain.modes import get_engine, get_fallback_chain
-from brain.providers import call_omniroute
+from brain import settings
 from brain.state_manager import TaskManager
-from brain.verifier import run_verification
 from tools.registry import dispatch
 
 logger = logging.getLogger("harvis.harness")
 
-HARNESS_SYSTEM_PROMPT = """You are HARVIS, an autonomous, self-verifying engineering agent.
+FINISH_TOOL = {
+    "name": "finish",
+    "description": (
+        "End the task. Call this when you are done, or when you decide to stop "
+        "for any reason (finished, blocked, or giving up)."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "success": {"type": "boolean", "description": "Whether you achieved the goal."},
+            "summary": {"type": "string", "description": "What happened, for the user."},
+        },
+        "required": ["summary"],
+    },
+}
 
-You are driven by an external execution harness with strict invariants:
-1. OBSERVE BEFORE ACTING: Never assume file contents, services, or errors. Always inspect first.
-2. ONE ACTION PER TURN: Choose exactly ONE tool action (shell_exec, file_op, etc.) that moves the plan forward.
-3. VERIFY WITH REALITY: Never declare a task complete based on assumption. Verify every change with a real check (exit code 0, regex match, or file verification).
-4. FORMAT YOUR RESPONSE:
-   - Begin with a 1-sentence observation & hypothesis:
-     "Hypothesis: <why this action will advance the milestone>"
-   - Specify your verification check:
-     "Check: <command or condition to verify the action's success>"
-   - Trigger the appropriate tool call.
-5. WHEN GENUINELY FINISHED:
-   When all milestones in plan.md have been executed AND verified with automated checks passing, output a final response containing:
-   "[TASK COMPLETE]" followed by a concise summary of what was changed and verified.
-"""
+
+def _clip(text: str, limit: int) -> str:
+    """Keep head and tail; errors and final lines are usually at the end."""
+    if not limit or len(text) <= limit:
+        return text
+    head = limit // 2
+    tail = limit - head
+    return f"{text[:head]}\n...[{len(text) - limit} chars omitted; full output in trace.jsonl]...\n{text[-tail:]}"
+
+
+def _content_chars(content) -> int:
+    if isinstance(content, list):  # multimodal parts: count text, ignore image payloads
+        return sum(len(p.get("text", "")) for p in content if isinstance(p, dict) and p.get("type") == "text")
+    return len(str(content or ""))
+
+
+def _history_chars(history: list) -> int:
+    return sum(_content_chars(m.get("content")) for m in history)
+
+
+def _default_engine(history, *, system_prompt, mode, stream_callback, extra_tools):
+    """One model turn via the router's provider chain (imported lazily)."""
+    from brain.router import complete
+    return complete(history, system_prompt=system_prompt, mode=mode,
+                    stream_callback=stream_callback, extra_tools=extra_tools)
 
 
 class HarnessRunner:
-    def __init__(self, task_id: str = None, mode: str = "normal"):
+    def __init__(self, task_id: str = None, mode: str = "normal", engine=None,
+                 system_prompt: str = None, history_prefix: list = None):
+        """engine: callable(history, *, system_prompt, mode, stream_callback, extra_tools) -> dict | None.
+        system_prompt: persona/context placed before the harness prompt.
+        history_prefix: earlier chat messages ({"role","content"}) the agent should know about."""
         self.task_id = task_id or f"task_{uuid.uuid4().hex[:8]}"
         self.mode = mode
+        self.engine = engine or _default_engine
+        self.persona = system_prompt
+        self.history_prefix = list(history_prefix or [])
         self.task_mgr = TaskManager(self.task_id)
+
+    def _result(self, status, success, step, **extra):
+        out = {
+            "task_id": self.task_id,
+            "status": status,
+            "success": success,
+            "step": step,
+            "plan": self.task_mgr.read_plan(),
+            "trace": self.task_mgr.dir + "/trace.jsonl",
+        }
+        out.update(extra)
+        return out
 
     async def run(
         self,
-        goal: str,
+        goal,
         progress_callback=None,
         cancel_event=None,
-        max_steps: int = 25,
-        max_duration_sec: int = 600,
+        max_steps: int = None,
+        max_duration_sec: int = None,
+        stream_callback=None,
     ) -> dict:
-        """Executes an autonomous goal to completion or bounded termination."""
-        state = self.task_mgr.init_task(goal, max_steps=max_steps, max_duration_sec=max_duration_sec)
-        start_time = time.time()
-        logger.info(f"Harness started task {self.task_id} with goal: {goal}")
+        """goal: text, or a list of multimodal message parts (text + images).
+        progress_callback may be sync or async."""
+        max_steps = settings.MAX_STEPS if max_steps is None else max_steps
+        max_duration_sec = settings.MAX_DURATION_SEC if max_duration_sec is None else max_duration_sec
 
-        last_obs = ""
-        last_act = None
-        last_check = None
-        engine_model = get_engine(self.mode)
+        goal_text = goal if isinstance(goal, str) else " ".join(
+            p.get("text", "") for p in goal if isinstance(p, dict) and p.get("type") == "text")
+        self.task_mgr.init_task(goal_text, max_steps=max_steps, max_duration_sec=max_duration_sec)
+        start = time.time()
+        system_prompt = "\n\n".join(p for p in (self.persona, settings.load_prompt()) if p)
+        recent = deque(maxlen=settings.REPEAT_WINDOW or 1)
 
-        if progress_callback:
-            try:
-                progress_callback({
-                    "type": "init",
-                    "task_id": self.task_id,
-                    "goal": goal,
-                    "plan": self.task_mgr.read_plan(),
-                })
-            except Exception as e:
-                logger.warning(f"Progress callback error on init: {e}")
-
-        for step in range(1, max_steps + 1):
-            # Check cancellation
-            if cancel_event and cancel_event.is_set():
-                logger.info(f"Task {self.task_id} cancelled by user.")
-                return {
-                    "task_id": self.task_id,
-                    "status": "cancelled",
-                    "success": False,
-                    "step": step,
-                    "message": "Task cancelled by user.",
-                    "plan": self.task_mgr.read_plan(),
-                }
-
-            # Check timeout
-            elapsed = time.time() - start_time
-            if elapsed > max_duration_sec:
-                logger.warning(f"Task {self.task_id} timed out after {elapsed:.1f}s.")
-                return {
-                    "task_id": self.task_id,
-                    "status": "timeout",
-                    "success": False,
-                    "step": step,
-                    "message": f"Task exceeded maximum duration of {max_duration_sec}s.",
-                    "plan": self.task_mgr.read_plan(),
-                }
-
-            # Invariant 3: Stuck Detection & Recovery Ladder
-            current_state = self.task_mgr.load_state()
-            failures = current_state.get("consecutive_failures", 0)
-            stuck_count = current_state.get("stuck_counter", 0)
-
-            # 4x Failures: Attempt recovery ladder (git rollback)
-            if failures == 4:
-                logger.warning(f"Task {self.task_id} hit 4 consecutive failures. Triggering git rollback...")
-                rollback_res = run_verification("git checkout -- .")
-                self.task_mgr.append_note(f"Recovery ladder triggered: git rollback (exit code {rollback_res.get('exit_code')}).")
-                if progress_callback:
-                    progress_callback({
-                        "type": "recovery",
-                        "step": step,
-                        "details": "Triggered git rollback to restore clean state after 4 failures."
-                    })
-
-            # 5x Failures: Escalation to human
-            if failures >= 5 or stuck_count >= 3:
-                logger.error(f"Task {self.task_id} stuck after {failures} consecutive failures. Escalating.")
-                return {
-                    "task_id": self.task_id,
-                    "status": "escalation_required",
-                    "success": False,
-                    "step": step,
-                    "message": f"HARVIS is stuck after {failures} failed attempts. Human guidance required.",
-                    "plan": self.task_mgr.read_plan(),
-                    "notes": self.task_mgr.read_notes(),
-                }
-
-            # Assemble lean context (< 3,500 tokens)
-            messages = self.task_mgr.assemble_lean_context(
-                system_prompt=HARNESS_SYSTEM_PROMPT,
-                last_obs=last_obs,
-                last_act=last_act,
-                last_check=last_check,
-            )
-
-            # Inject loop breaker warning on 2x failure/repetition
-            if failures >= 2 or stuck_count >= 1:
-                messages.append({
-                    "role": "user",
-                    "content": (
-                        "⚠️ CRITICAL HARNESS DIRECTIVE: Your previous actions either failed or were identical. "
-                        "You are looping. Do NOT execute the same command or edit. "
-                        "Re-observe, formulate an alternative hypothesis, and change your strategy."
-                    )
-                })
-
-            # Call Engine with silent fallback chain
-            models_to_try = get_fallback_chain(self.mode)
-            response = None
-            for cand_model in models_to_try:
+        async def emit(event):
+            if progress_callback:
                 try:
-                    response = await asyncio.to_thread(
-                        call_omniroute,
-                        messages,
-                        system_prompt=None,
-                        enable_tools=True,
-                        model=cand_model,
-                    )
-                    if response:
-                        break
-                except Exception as call_err:
-                    logger.warning(f"Model {cand_model} failed in harness loop ({call_err}). Trying fallback...")
+                    r = progress_callback(event)
+                    if inspect.isawaitable(r):
+                        await r
+                except Exception as e:
+                    logger.warning(f"Progress callback error on {event.get('type')}: {e}")
+
+        header = (
+            f"[harness] Task directory: {self.task_mgr.dir}\n"
+            f"[harness] Full untruncated step trace: {self.task_mgr.dir}/trace.jsonl "
+            f"(older steps leave your context window but stay there).\n"
+            f"[harness] Budget: "
+            f"{max_steps or 'unlimited'} steps, {max_duration_sec or 'unlimited'}s."
+        )
+        if isinstance(goal, str):
+            first = {"role": "user", "content": f"{goal}\n\n{header}"}
+        else:
+            first = {"role": "user", "content": list(goal) + [{"type": "text", "text": header}]}
+        history = self.history_prefix + [first]
+        goal_idx = len(self.history_prefix)
+        await emit({"type": "init", "task_id": self.task_id, "goal": goal_text, "plan": self.task_mgr.read_plan()})
+
+        step = 0
+        while True:
+            step += 1
+            if cancel_event and cancel_event.is_set():
+                return self._result("cancelled", False, step, message="Task cancelled by user.")
+            elapsed = time.time() - start
+            if max_duration_sec and elapsed > max_duration_sec:
+                return self._result("timeout", False, step,
+                                    message=f"Exceeded maximum duration of {max_duration_sec}s.")
+            if max_steps and step > max_steps:
+                return self._result("step_limit_reached", False, step - 1,
+                                    message=f"Reached step limit of {max_steps}.",
+                                    notes=self.task_mgr.read_notes())
+
+            # Roll the window: drop oldest (assistant call, tool result) pairs, keep the goal.
+            while (settings.CONTEXT_CHARS and _history_chars(history) > settings.CONTEXT_CHARS
+                   and len(history) > goal_idx + 3):
+                del history[goal_idx + 1:goal_idx + 3]
+
+            await emit({"type": "thinking", "step": step})
+            try:
+                response = await asyncio.to_thread(
+                    self.engine, history, system_prompt=system_prompt, mode=self.mode,
+                    stream_callback=stream_callback, extra_tools=[FINISH_TOOL],
+                )
+            except Exception as err:
+                if cancel_event and cancel_event.is_set():
+                    return self._result("cancelled", False, step, message="Task cancelled by user.")
+                logger.warning(f"Engine call failed in harness loop: {err}")
+                response = None
 
             if not response:
-                return {
-                    "task_id": self.task_id,
-                    "status": "provider_error",
-                    "success": False,
-                    "step": step,
-                    "message": "All engine providers failed during harness execution.",
-                    "plan": self.task_mgr.read_plan(),
-                }
+                if cancel_event and cancel_event.is_set():
+                    return self._result("cancelled", False, step, message="Task cancelled by user.")
+                return self._result("provider_error", False, step,
+                                    message="All engine providers failed during harness execution.")
 
-            # Process Model Decision
-            resp_type = response.get("type")
+            # Plain text, no tool call: the agent chose to stop talking to tools.
+            if response.get("type") != "tool_call":
+                text = (response.get("content") or "").strip()
+                self.task_mgr.append_trace({"step": step, "type": "final_text", "content": text})
+                await emit({"type": "completed", "step": step, "summary": text, "plan": self.task_mgr.read_plan()})
+                # success is None: the agent didn't declare one and the harness won't invent one.
+                return self._result("answered", None, step, output=text)
 
-            if resp_type == "text":
-                content = response.get("content", "")
-                
-                # Check for plan updates formatted inside text
-                if "## Milestones" in content or "[ ]" in content or "[x]" in content:
-                    lines = [ln for ln in content.splitlines() if ln.strip().startswith("[") or ln.strip().startswith("#")]
-                    if lines:
-                        self.task_mgr.update_plan("\n".join(lines))
+            tool_name = response.get("tool_name")
+            tool_args = response.get("tool_args", {}) or {}
 
-                # Check for Task Completion or Direct Text Answers
-                clean_summary = content.replace("[TASK COMPLETE]", "").strip()
-                if "[TASK COMPLETE]" in content or "task complete" in content.lower() or step == 1 or last_act is not None:
-                    self.task_mgr.append_note(f"Task completed successfully at step {step}.")
-                    if progress_callback:
-                        try:
-                            progress_callback({
-                                "type": "completed",
-                                "step": step,
-                                "summary": clean_summary,
-                                "plan": self.task_mgr.read_plan(),
-                            })
-                        except Exception as e:
-                            logger.warning(f"Progress callback error on completed: {e}")
-                    return {
-                        "task_id": self.task_id,
-                        "status": "completed",
-                        "success": True,
-                        "step": step,
-                        "output": clean_summary,
-                        "plan": self.task_mgr.read_plan(),
-                    }
+            # The agent decides it is done.
+            if tool_name == FINISH_TOOL["name"]:
+                summary = str(tool_args.get("summary", "")).strip()
+                declared = tool_args.get("success")
+                self.task_mgr.append_trace({"step": step, "type": "finish", "success": declared, "summary": summary})
+                await emit({"type": "completed", "step": step, "summary": summary, "plan": self.task_mgr.read_plan()})
+                return self._result("finished", declared if isinstance(declared, bool) else None,
+                                    step, output=summary)
 
-                # Pure conversational thought during multi-step execution
-                last_obs = content[:500]
-                self.task_mgr.append_note(f"Thought: {content[:200]}")
-                last_act = None
-                last_check = None
-                continue
+            await emit({"type": "acting", "step": step, "tool_name": tool_name, "tool_args": tool_args,
+                  "plan": self.task_mgr.read_plan()})
 
-            elif resp_type == "tool_call":
-                tool_name = response.get("tool_name")
-                tool_args = response.get("tool_args", {}) or {}
+            t0 = time.time()
+            tool_res = await asyncio.to_thread(dispatch, tool_name, tool_args)
+            took = round(time.time() - t0, 2)
+            ok = bool(tool_res.get("success", False))
+            raw = tool_res.get("output", "") or ""
+            err = tool_res.get("error", "") or ""
+            raw_text = raw if not err else f"{raw}\n[stderr/error]: {err}".strip()
 
-                if progress_callback:
-                    try:
-                        progress_callback({
-                            "type": "acting",
-                            "step": step,
-                            "tool_name": tool_name,
-                            "tool_args": tool_args,
-                            "plan": self.task_mgr.read_plan(),
-                        })
-                    except Exception as e:
-                        logger.warning(f"Progress callback error on action: {e}")
+            self.task_mgr.append_trace({
+                "step": step, "type": "action", "tool": tool_name, "args": tool_args,
+                "success": ok, "seconds": took, "output": raw_text,
+            })
 
-                # Execute action via dispatch
-                t_start = time.time()
-                tool_res = await asyncio.to_thread(dispatch, tool_name, tool_args)
-                t_elapsed = round(time.time() - t_start, 2)
+            # Facts for the agent. No instructions.
+            sig = TaskManager.compute_action_hash(tool_name, tool_args)
+            recent.append(sig)
+            repeats = sum(1 for s in recent if s == sig)
+            facts = [f"step {step}" + (f"/{max_steps}" if max_steps else ""),
+                     f"{int(time.time() - start)}s elapsed" + (f"/{max_duration_sec}s" if max_duration_sec else ""),
+                     f"success={ok}", f"{took}s"]
+            if tool_res.get("timed_out"):
+                facts.append("command did not exit on its own and was killed")
+            if settings.REPEAT_NOTICE and repeats >= settings.REPEAT_NOTICE:
+                facts.append(f"this exact action has run {repeats} times in the last {len(recent)} actions")
+            note = "[harness: " + ", ".join(facts) + "]"
 
-                tool_success = tool_res.get("success", False)
-                raw_output = tool_res.get("output", "") or tool_res.get("error", "")
-                last_obs = f"[{tool_name} returned in {t_elapsed}s (success={tool_success})]:\n{raw_output[:1200]}"
+            history.append({"role": "assistant",
+                            "content": json.dumps({"type": "tool_call", "tool_name": tool_name,
+                                                   "tool_args": tool_args})})
+            history.append({"role": "tool",
+                            "content": f"{_clip(raw_text, settings.OBS_CHARS)}\n{note}"})
 
-                # Automated Verification Gatekeeper
-                check_res = {"passed": tool_success, "details": f"Tool execution returned success={tool_success}"}
-                if tool_name == "shell_exec":
-                    cmd = tool_args.get("cmd", "")
-                    if "pytest" in cmd or "test" in cmd:
-                        check_res = {"passed": tool_success, "details": f"Test run exit code evaluated ({'passed' if tool_success else 'failed'})."}
-                elif tool_name == "file_op":
-                    action = tool_args.get("action")
-                    fpath = tool_args.get("path")
-                    if action in ("write", "move") and fpath:
-                        check_res = run_verification(f"file:{fpath}")
+            await emit({"type": "checked", "step": step, "tool_name": tool_name, "success": ok,
+                  "check_passed": ok, "details": note[:200], "output": raw_text, "plan": self.task_mgr.read_plan()})
 
-                last_act = {"tool_name": tool_name, "tool_args": tool_args}
-                last_check = check_res
-
-                # Record step and update stuck detector
-                step_info = self.task_mgr.record_step(
-                    tool_name=tool_name,
-                    tool_args=tool_args,
-                    result_success=tool_success,
-                    check_passed=check_res.get("passed", False),
-                )
-
-                self.task_mgr.append_note(
-                    f"Step {step}: {tool_name} -> {'OK' if tool_success else 'ERR'} (check: {'PASSED' if check_res.get('passed') else 'FAILED'})"
-                )
-
-                if progress_callback:
-                    try:
-                        progress_callback({
-                            "type": "checked",
-                            "step": step,
-                            "tool_name": tool_name,
-                            "success": tool_success,
-                            "check_passed": check_res.get("passed", False),
-                            "details": check_res.get("details", "")[:200],
-                            "plan": self.task_mgr.read_plan(),
-                        })
-                    except Exception as e:
-                        logger.warning(f"Progress callback error on check: {e}")
-
-        # Reached step cap
-        logger.warning(f"Task {self.task_id} reached maximum step cap ({max_steps}).")
-        return {
-            "task_id": self.task_id,
-            "status": "step_limit_reached",
-            "success": False,
-            "step": max_steps,
-            "message": f"Reached step limit of {max_steps} without completing all milestones.",
-            "plan": self.task_mgr.read_plan(),
-            "notes": self.task_mgr.read_notes(),
-        }
+            if settings.REPEAT_ABORT and repeats >= settings.REPEAT_ABORT:
+                return self._result("stuck", False, step,
+                                    message=f"Same action repeated {repeats} times; stopping.",
+                                    notes=self.task_mgr.read_notes())
