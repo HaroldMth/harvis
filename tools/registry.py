@@ -1,4 +1,4 @@
-from tools.browser import open_app, open_url
+from tools.browser import open_app, open_url, close_app
 from tools.system import shell_exec, file_op
 from tools.info import system_info
 from tools.desktop import (
@@ -6,8 +6,10 @@ from tools.desktop import (
     brightness_control, media_control, screenshot,
 )
 from tools.timer import timer
+from tools.browser_fetch import browser_fetch
 from db.store import log_tool_call
 
+import json
 import os
 import sys
 import importlib.util
@@ -21,6 +23,20 @@ logger = logging.getLogger("harvis.registry")
 # ------------------------------------------------------------------
 
 TOOLS_SCHEMA = [
+    {
+        "name": "close_app",
+        "description": "Close, terminate, or kill running desktop applications by name (e.g. chrome, dolphin, settings, firefox, code, all). Use this whenever Harold asks to kill, close, or stop an application.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the app(s) to close (e.g. chrome, dolphin, settings, firefox, code, all)"
+                }
+            },
+            "required": ["name"]
+        }
+    },
     {
         "name": "open_app",
         "description": "Launch an application on the computer. To open a website in a browser, pass both name (browser/app) and url. Site shortcuts like youtube, google, github, gmail are supported as url values.",
@@ -59,13 +75,17 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "shell_exec",
-        "description": "Executes a shell command on the local computer",
+        "description": "Executes a shell command on the local computer. For package installs, builds, or long scripts, specify a custom timeout in seconds (e.g. 60 or 120).",
         "parameters": {
             "type": "object",
             "properties": {
                 "cmd": {
                     "type": "string",
-                    "description": "The shell command to run (e.g. ls -la, neofetch)"
+                    "description": "The shell command to run (e.g. ls -la, npm install, cargo build)"
+                },
+                "timeout": {
+                    "type": "integer",
+                    "description": "Optional custom wait time in seconds (default 30). Set higher (60-300) for package installs, builds, or heavy scripts."
                 }
             },
             "required": ["cmd"]
@@ -113,7 +133,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "system_info",
-        "description": "Retrieves basic system information like CPU load, RAM usage, and disk space",
+        "description": "CPU load, RAM usage, disk space, and the processes using the most CPU and memory. Use this for ram, storage, disk, memory, and top/consuming apps — do not use shell_exec for those.",
         "parameters": {
             "type": "object",
             "properties": {}
@@ -158,6 +178,38 @@ TOOLS_SCHEMA = [
                 "max_chars": {
                     "type": "integer",
                     "description": "Maximum page text to return (500-30000; default 12000)"
+                }
+            },
+            "required": ["url"]
+        }
+    },
+    {
+        "name": "browser_fetch",
+        "description": "Fetch and read any webpage using a real headless Chromium browser with full JavaScript rendering. Use this instead of fetch_url when: the page requires JavaScript/React/Vue to render, the site has Cloudflare or anti-bot protection, the content is loaded dynamically (SPAs, infinite scroll), or fetch_url returns empty/partial content. Can extract full page text, links, or take a screenshot.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Full URL to open in the headless browser (must start with http:// or https://)"
+                },
+                "extract": {
+                    "type": "string",
+                    "enum": ["text", "media", "links", "html", "screenshot_path"],
+                    "description": "What to extract: 'text' (readable content, default), 'media' (all images, videos, audio, OG meta tags), 'links' (page URLs), 'html' (rendered DOM HTML), 'screenshot_path' (take PNG screenshot)"
+                },
+                "wait_for": {
+                    "type": "string",
+                    "enum": ["networkidle", "load", "domcontentloaded"],
+                    "description": "When to consider page fully loaded: 'networkidle' (default, best for SPAs), 'load', 'domcontentloaded' (fastest)"
+                },
+                "wait_selector": {
+                    "type": "string",
+                    "description": "Optional CSS selector to wait for before reading (e.g. '#main-content', '.article-body')"
+                },
+                "max_chars": {
+                    "type": "integer",
+                    "description": "Maximum characters of text to return (default 12000, max 50000)"
                 }
             },
             "required": ["url"]
@@ -350,13 +402,20 @@ def _load_plugins():
             handler = getattr(mod, "handler", None)
 
             if schema and handler:
-                plugins.append({"schema": schema, "handler": handler, "module": mod_name})
-                logger.info(f"Loaded plugin: {schema.get('name', filename[:-3])}")
+                plugins.append({"schema": schema, "handler": handler, "module": mod_name, "module_obj": mod})
+                plugin_name = schema[0].get('name') if isinstance(schema, list) else schema.get('name', filename[:-3])
+                logger.info(f"Loaded plugin: {plugin_name}")
         except Exception as e:
             logger.warning(f"Failed to load plugin {filename}: {e}")
 
     _PLUGIN_CACHE = plugins
     return plugins
+
+
+def invalidate_plugin_cache():
+    """Force plugin reload on next call — useful after hot-reloads."""
+    global _PLUGIN_CACHE
+    _PLUGIN_CACHE = None
 
 
 def _plugin_matcher(query: str, examples: list) -> bool:
@@ -374,21 +433,40 @@ def _get_plugin_schemas():
     schemas = []
     for plugin in _load_plugins():
         s = plugin["schema"]
-        schemas.append({
-            "name": s.get("name"),
-            "description": s.get("description", ""),
-            "parameters": s.get("parameters", {"type": "object", "properties": {}}),
-        })
+        items = s if isinstance(s, list) else [s]
+        for sub in items:
+            schemas.append({
+                "name": sub.get("name"),
+                "description": sub.get("description", ""),
+                "parameters": sub.get("parameters", {"type": "object", "properties": {}}),
+            })
     return schemas
 
 
 def _try_plugin_dispatch(name: str, args: dict) -> dict:
     """Try to dispatch to a plugin by name. Returns None if not a plugin."""
     for plugin in _load_plugins():
-        if plugin["schema"].get("name") == name:
+        s = plugin["schema"]
+        mod = plugin.get("module_obj")
+        items = s if isinstance(s, list) else [s]
+        schema_names = [sub.get("name") for sub in items]
+
+        if name in schema_names:
             try:
-                query = args.get("query", "") if isinstance(args, dict) else str(args)
-                result = plugin["handler"](query)
+                # Normalize args first
+                args = _normalize_tool_args(name, args)
+
+                # Check for explicit name_handler in module
+                if mod:
+                    specific_handler = getattr(mod, f"{name}_handler", None)
+                    if specific_handler:
+                        result = specific_handler(args)
+                        if isinstance(result, str):
+                            return {"success": True, "output": result}
+                        return result
+
+                # Always pass the full args dict to the handler
+                result = plugin["handler"](args)
                 if isinstance(result, str):
                     return {"success": True, "output": result}
                 return result
@@ -411,15 +489,53 @@ def _try_plugin_match(query: str) -> tuple:
 # Tool dispatch
 # ------------------------------------------------------------------
 
+_ARG_ALIASES = {
+    "shell_exec": (("command", "cmd"), ("query", "cmd"), ("script", "cmd"), ("code", "cmd")),
+    "open_url": (("uri", "url"), ("link", "url")),
+    "web_search": (("q", "query"), ("search", "query")),
+}
+
+
+def _normalize_tool_args(name, args):
+    """Accept common LLM argument shapes so dispatch does not TypeError."""
+    if args is None:
+        args = {}
+    if isinstance(args, str):
+        try:
+            args = json.loads(args)
+        except Exception:
+            return {"cmd": args} if name == "shell_exec" else {"query": args}
+    if not isinstance(args, dict):
+        return {}
+
+    args = dict(args)
+    for wrapper in ("parameters", "arguments", "input"):
+        inner = args.get(wrapper)
+        if isinstance(inner, dict):
+            merged = dict(inner)
+            for key, value in args.items():
+                if key != wrapper:
+                    merged[key] = value
+            args = merged
+            break
+
+    for alt, canonical in _ARG_ALIASES.get(name, ()):
+        if args.get(canonical) in (None, "") and alt in args:
+            args[canonical] = args[alt]
+    return args
+
+
 TOOL_DISPATCH = {
+    "close_app": close_app,
     "open_app": open_app,
     "open_url": open_url,
-    "shell_exec": shell_exec,
+    "shell_exec": lambda cmd=None, command=None, timeout=None, **kw: shell_exec(cmd=cmd, command=command, timeout=timeout, **kw),
     "file_op": file_op,
     "list_dir": list_dir,
-    "system_info": lambda **_: system_info(),
+    "system_info": lambda *a, **kw: system_info(),
     "web_search": web_search,
     "fetch_url": fetch_url,
+    "browser_fetch": browser_fetch,
     "play_song": play_song,
     "notify": notify,
     "clipboard": clipboard,
@@ -450,15 +566,20 @@ def dispatch(name, args):
         result = plugin_result
     else:
         try:
-            if args is None:
-                args = {}
-
-            handler = TOOL_DISPATCH.get(name)
-            if handler:
-                result = handler(**args)
-            else:
-                result = {"success": False, "error": f"Tool '{name}' not found."}
+            args = _normalize_tool_args(name, args)
+            if name == "shell_exec" and not args.get("cmd"):
+                result = {
+                    "success": False,
+                    "error": "shell_exec requires cmd (the command string). For RAM, disk, or top processes use system_info with no arguments.",
+                }
                 status = "failed"
+            else:
+                handler = TOOL_DISPATCH.get(name)
+                if handler:
+                    result = handler(**args)
+                else:
+                    result = {"success": False, "error": f"Tool '{name}' not found."}
+                    status = "failed"
         except TypeError as e:
             result = {"success": False, "error": f"Invalid arguments for tool '{name}': {e}"}
             status = "failed"

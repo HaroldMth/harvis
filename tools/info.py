@@ -1,9 +1,27 @@
 import os
 import shutil
+import subprocess
+
+
+def _top_processes(sort_key: str, n: int = 8) -> str:
+    try:
+        result = subprocess.run(
+            ["ps", "-eo", "pid,user,pcpu,pmem,comm", f"--sort=-{sort_key}", "--no-headers"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        lines = [ln.strip() for ln in result.stdout.splitlines() if ln.strip()][:n]
+        if not lines:
+            return "N/A"
+        return "\n".join(f"  {ln}" for ln in lines)
+    except Exception as e:
+        return str(e)
+
 
 def system_info():
     """
-    Returns basic system status including CPU load average, RAM usage, and disk usage.
+    Returns CPU load, RAM, disk usage, and top CPU/memory processes.
     """
     try:
         # Load average (CPU)
@@ -43,7 +61,13 @@ def system_info():
         free_gb = round(free / (2**30), 2)
         disk_str = f"Total: {total_gb} GB, Used: {used_gb} GB, Free: {free_gb} GB"
 
-        output_str = f"CPU Load: {cpu_load}\nMemory: {mem_str}\nDisk: {disk_str}"
+        top_cpu = _top_processes("pcpu")
+        top_mem = _top_processes("pmem")
+        output_str = (
+            f"CPU Load: {cpu_load}\nMemory: {mem_str}\nDisk: {disk_str}\n"
+            f"Top CPU (pid user cpu% mem% command):\n{top_cpu}\n"
+            f"Top RAM (pid user cpu% mem% command):\n{top_mem}"
+        )
         return {
             "success": True,
             "output": output_str,

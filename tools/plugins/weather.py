@@ -8,7 +8,17 @@ import requests
 
 PLUGIN_SCHEMA = {
     "name": "weather",
-    "description": "Get current weather and forecast for a location using Open-Meteo.",
+    "description": "Get the current weather and today's high/low for a location using Open-Meteo. No API key is required.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "A city, town, or natural-language weather request, for example 'Cape Town' or 'weather in Tokyo'."
+            }
+        },
+        "required": ["query"],
+    },
     "examples": [
         "weather in Paris",
         "what's the weather like in Tokyo?",
@@ -18,21 +28,56 @@ PLUGIN_SCHEMA = {
 }
 
 
-def handler(query: str) -> dict:
+def handler(args) -> dict:
     """Main entry point called by the registry. Returns a standard tool dict."""
-    match = re.search(
-        r"(?:weather|forecast|temperature|how\s+(?:hot|cold|warm))?(?:\s+(?:in|for|at|like|is|it))?\s*(.+)",
-        query,
-        re.IGNORECASE,
-    )
-    if not match or not match.group(1).strip():
-        return {
-            "success": False,
-            "error": "Please specify a location, e.g., 'weather in Paris'.",
-        }
-
-    location = match.group(1).strip().rstrip("?")
+    if isinstance(args, dict):
+        query = args.get("query") or args.get("location") or args.get("city") or ""
+    else:
+        query = str(args or "")
+    location = _extract_location(query)
+    if not location:
+        # Try to auto-detect from IP
+        try:
+            ip_resp = requests.get("https://ipapi.co/json/", timeout=5)
+            ip_data = ip_resp.json()
+            location = ip_data.get("city") or ip_data.get("region") or "Cape Town"
+        except Exception:
+            location = "Cape Town"
     return get_weather(location)
+
+
+def _ip_location() -> str:
+    """Auto-detect city from IP address."""
+    try:
+        ip_data = requests.get("https://ipapi.co/json/", timeout=5).json()
+        return ip_data.get("city") or ip_data.get("region") or "Cape Town"
+    except Exception:
+        return "Cape Town"
+
+
+def _extract_location(query: str) -> str:
+    """Accept a bare location or the common natural-language weather phrasing."""
+    location = (query or "").strip().rstrip("?.! ")
+    if not location:
+        return ""
+
+    # Phrases that mean "use my current location" → return "" to trigger IP auto-detect
+    AUTO_PHRASES = {"current location", "my location", "here", "current", "local", "my city", "where i am"}
+    if location.lower() in AUTO_PHRASES:
+        return ""
+
+    # Possessive / vague user-reference phrases → auto-detect
+    import re as _re
+    if _re.search(r"\b(harold|user|my|harold'?s)\b.{0,20}\blocation\b", location, _re.IGNORECASE):
+        return ""
+
+    location = re.sub(r"^(?:what(?:'s| is)\s+)?(?:the\s+)?", "", location, flags=re.IGNORECASE)
+    location = re.sub(r"^(?:weather|forecast|temperature)\b", "", location, flags=re.IGNORECASE)
+    location = re.sub(r"^how\s+(?:hot|cold|warm)\s+(?:is\s+it\s+)?", "", location, flags=re.IGNORECASE)
+    location = location.strip()
+    location = re.sub(r"^(?:like|is|it|in|for|at)\s+", "", location, flags=re.IGNORECASE)
+    location = re.sub(r"^(?:in|for|at)\s+", "", location, flags=re.IGNORECASE)
+    return location.strip()
 
 
 def get_weather(location: str, units: str = "metric") -> dict:
@@ -43,9 +88,14 @@ def get_weather(location: str, units: str = "metric") -> dict:
         geo_resp = requests.get(
             geo_url, params={"name": location, "count": 1}, timeout=10
         )
+        geo_resp.raise_for_status()
         geo_data = geo_resp.json()
 
         if not geo_data.get("results"):
+            # Geocoding failed — fall back to IP-detected city
+            fallback = _ip_location()
+            if fallback and fallback != location:
+                return get_weather(fallback, units)
             return {"success": False, "error": f"Could not find location: {location}"}
 
         place = geo_data["results"][0]
@@ -58,14 +108,8 @@ def get_weather(location: str, units: str = "metric") -> dict:
         params = {
             "latitude": lat,
             "longitude": lon,
-            "current": [
-                "temperature_2m",
-                "relative_humidity_2m",
-                "apparent_temperature",
-                "weather_code",
-                "wind_speed_10m",
-            ],
-            "daily": ["temperature_2m_max", "temperature_2m_min"],
+            "current": "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+            "daily": "temperature_2m_max,temperature_2m_min",
             "timezone": "auto",
         }
         if units == "imperial":
@@ -73,6 +117,7 @@ def get_weather(location: str, units: str = "metric") -> dict:
             params["wind_speed_unit"] = "mph"
 
         w_resp = requests.get(weather_url, params=params, timeout=10)
+        w_resp.raise_for_status()
         w_data = w_resp.json()
 
         current = w_data["current"]

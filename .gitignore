@@ -1,2 +1,11 @@
-node_modules
-fish-tts-api
+node_modules/
+fish-tts-api/
+.harvis/
+__pycache__/
+*.pyc
+.env
+db/harvis.db
+reply.mp3
+audio/silero_vad.onnx
+.vscode/
+whatsapp/auth_info_baileys/

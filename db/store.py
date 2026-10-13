@@ -17,6 +17,48 @@ def init_db():
     conn.commit()
     conn.close()
 
+BUSY_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "busy_state.json"))
+
+
+def set_harvis_busy(is_busy: bool):
+    """Sets process-level busy state so heartbeat skips while HARVIS handles user requests."""
+    try:
+        data = {"busy": is_busy, "ts": time.time()}
+        with open(BUSY_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+
+def is_harvis_busy() -> bool:
+    """Checks if HARVIS is actively processing a user command."""
+    if not os.path.exists(BUSY_FILE):
+        return False
+    try:
+        with open(BUSY_FILE, "r") as f:
+            data = json.load(f)
+        if data.get("busy") and (time.time() - data.get("ts", 0)) < 120:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def get_seconds_since_last_user_message() -> float:
+    """Returns seconds elapsed since Harold last sent a message to HARVIS."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT strftime('%s', 'now') - strftime('%s', created_at) FROM messages WHERE role = 'user' ORDER BY id DESC LIMIT 1")
+        row = cursor.fetchone()
+        conn.close()
+        if row and row[0] is not None:
+            return float(row[0])
+    except Exception:
+        pass
+    return 999999.0
+
+
 def save_message(session_id, role, content):
     conn = get_connection()
     cursor = conn.cursor()
@@ -38,6 +80,16 @@ def get_history(session_id, limit=20):
     conn.close()
     # Return in chronological order (oldest first)
     return [{"role": r[0], "content": r[1]} for r in reversed(rows)]
+
+def clear_session(session_id):
+    """Wipes all messages for a session — use when history is corrupt."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+    count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return count
 
 def log_tool_call(tool_name, args, result, status):
     conn = get_connection()

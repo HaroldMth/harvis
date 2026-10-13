@@ -1,0 +1,15 @@
+{
+  "name": "harvis-whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "HARVIS AI WhatsApp Web Bridge powered by Baileys",
+  "main": "index.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "@hapi/boom": "^10.0.1",
+    "pino": "^9.0.0"
+  }
+}

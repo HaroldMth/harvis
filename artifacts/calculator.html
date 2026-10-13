@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dark Calculator — React Artifact</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel-2: #1e2230;
+    --accent: #6c8cff;
+    --accent-dim: #3d4d7d;
+    --danger: #ff5c7a;
+    --text: #e8eaf2;
+    --muted: #8b90a3;
+    --line: #262b3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1200px 800px at 50% -10%, #1a1f2e 0%, var(--bg) 60%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    padding: 24px;
+  }
+  .wrap { width: 100%; max-width: 380px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .brand {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; color: var(--muted); font-size: 12px;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  .display {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    text-align: right;
+    min-height: 118px;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
+    overflow: hidden;
+  }
+  .expr { color: var(--muted); font-size: 16px; min-height: 20px; word-break: break-all; font-variant-numeric: tabular-nums; }
+  .result { font-size: 42px; font-weight: 600; line-height: 1.1; word-break: break-all; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+  .result.error { color: var(--danger); font-size: 24px; letter-spacing: 0; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  button {
+    border: none; border-radius: 14px; padding: 18px 0;
+    font-size: 19px; font-weight: 600; cursor: pointer;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line);
+    transition: transform .06s ease, background .15s ease, box-shadow .15s ease;
+    font-family: inherit;
+  }
+  button:hover { filter: brightness(1.15); }
+  button:active { transform: scale(.93); }
+  button.op { color: var(--accent); }
+  button.fn { color: var(--muted); font-size: 15px; }
+  button.eq {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    color: #fff; border: none; box-shadow: 0 6px 18px rgba(108,140,255,.35);
+  }
+  button.danger { color: var(--danger); }
+  button.zero { grid-column: span 2; }
+  @media (max-width: 420px) { .result { font-size: 34px; } button { padding: 15px 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="brand"><span>Harvis&nbsp;Calc</span><span class="dot"></span></div>
+    <div id="root"></div>
+  </div>
+</div>
+
+<script type="text/babel">
+const { useState, useCallback, useEffect, useRef } = React;
+
+const OP = {
+  ADD: '+', SUB: '−', MUL: '×', DIV: '÷'
+};
+
+// Safe evaluator: tokenize digits/dots/operators only, no eval().
+function evaluate(expr) {
+  if (!expr || /[^0-9.+\-*/%×÷]/.test(expr)) return null;
+  const sanitized = expr
+    .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+  const tokens = sanitized.match(/(\d+\.?\d*|\.\d+|[+\-*/%])/g);
+  if (!tokens || tokens.length === 0) return null;
+
+  // Implements * / % before + -
+  const values = [];
+  const ops = [];
+  const prec = { '+': 1, '-': 1, '*': 2, '/': 2, '%': 2 };
+
+  const apply = (b, a, op) => {
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return (b === 0) ? NaN : a / b;
+      case '%': return a % b;
+      default: return NaN;
+    }
+  };
+
+  for (const t of tokens) {
+    if (prec[t] !== undefined) {
+      while (ops.length && prec[ops[ops.length - 1]] >= prec[t]) {
+        values.push(apply(values.pop(), values.pop(), ops.pop()));
+      }
+      ops.push(t);
+    } else {
+      const v = Number(t);
+      if (isNaN(v)) return null;
+      values.push(v);
+    }
+  }
+  while (ops.length) values.push(apply(values.pop(), values.pop(), ops.pop()));
+  const result = values[0];
+  return (typeof result === 'number' && isFinite(result)) ? result : null;
+}
+
+function formatNumber(n) {
+  if (n === null) return '';
+  const abs = Math.abs(n);
+  if (abs >= 1e15 || (abs > 0 && abs < 1e-9)) return n.toExponential(6);
+  const s = Number(n.toPrecision(12)).toString();
+  return s.length > 16 ? n.toExponential(6) : s;
+}
+
+function Calculator() {
+  const [expr, setExpr] = useState('');
+  const [result, setResult] = useState(null);
+  const [justEvaluated, setJustEvaluated] = useState(false);
+  const [error, setError] = useState(false);
+
+  const recompute = useCallback((e) => {
+    if (!e) return setResult(null);
+    const r = evaluate(e);
+    setError(false);
+    if (r === null) setResult(null); else setResult(r);
+  }, []);
+
+  useEffect(() => { recompute(expr); }, [expr, recompute]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handler = (ev) => {
+      const k = ev.key;
+      if (/^[0-9.]$/.test(k)) inputDigit(k);
+      else if (k === '+') inputOp(OP.ADD);
+      else if (k === '-') inputOp(OP.SUB);
+      else if (k === '*') inputOp(OP.MUL);
+      else if (k === '/') { ev.preventDefault(); inputOp(OP.DIV); }
+      else if (k === 'Enter' || k === '=') evaluateNow();
+      else if (k === 'Backspace') backspace();
+      else if (k === 'Escape') clearAll();
+      else if (k === '%') inputPercent();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window

@@ -1,144 +1,180 @@
 import sys
 import os
 import logging
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
-from PyQt6.QtCore import Qt, QUrl, QObject, pyqtSlot, pyqtSignal, QRect, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QSurfaceFormat
+
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
+from PyQt6.QtCore import Qt, QUrl, QObject, pyqtSlot, pyqtSignal, QTimer
+from PyQt6.QtGui import QSurfaceFormat, QIcon
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWebChannel import QWebChannel
 
 logger = logging.getLogger("harvis.gui")
 
-# Sizes matching React artifact exactly
-SIZES = {
-    "Idle":      (96, 32),
-    "Listening": (320, 88),
-    "Thinking":  (180, 48),
-    "Speaking":  (420, 128),
-    "Error":     (420, 88),
-}
+
+class DebugPage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, line, source):
+        logger.info(f"[JS {level}] {message} ({source}:{line})")
+
 
 class BackendBridge(QObject):
-    state_changed = pyqtSignal(str)
-    text_updated = pyqtSignal(str)
-    on_island_clicked = pyqtSignal()
+    """Signals from Python → JS."""
+    state_changed   = pyqtSignal(str)          # 'idle' | 'listening' | 'thinking' | 'speaking' | 'error'
+    message_received = pyqtSignal(str, str)    # role, content  (sent to chat)
+    tts_available   = pyqtSignal(bool)         # whether voice toggle is enabled
+    mode_changed    = pyqtSignal(str)          # 'normal' | 'think' | 'fast'
+
+    """Slots from JS → Python."""
+    # Emitted internally then connected to callbacks
+    _submit_text_sig = pyqtSignal(str)
+    _voice_activate_sig = pyqtSignal()
+
+    @pyqtSlot(str)
+    def submit_text(self, text: str):
+        """Called by JS when user submits a chat message."""
+        self._submit_text_sig.emit(text.strip())
 
     @pyqtSlot()
-    def island_clicked(self):
-        self.on_island_clicked.emit()
+    def voice_activate(self):
+        """Called by JS when user clicks the mic button."""
+        self._voice_activate_sig.emit()
+
+    @pyqtSlot(result=str)
+    def get_mode(self):
+        return getattr(self, "_mode", "normal")
 
 
-class OverlayWindow(QWidget):
-    def __init__(self, bridge):
-        super().__init__()
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
-        )
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAutoFillBackground(False)
-
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-
-        self.webview = QWebEngineView(self)
-        self.webview.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.webview.page().setBackgroundColor(Qt.GlobalColor.transparent)
-
-        self.channel = QWebChannel()
-        self.channel.registerObject("backend", bridge)
-        self.webview.page().setWebChannel(self.channel)
-
-        app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "ui", "dist", "index.html"))
-        self.webview.load(QUrl.fromLocalFile(app_path))
-
-        self.layout.addWidget(self.webview)
-        
-        # Animators
-        self.emerge_anim = QPropertyAnimation(self, b"geometry")
-        self.emerge_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.emerge_anim.setDuration(420)
-        
-        self.idle_peek = 10
-        self.top_margin = 14
-        
-        # Start tucked away
-        start_w, start_h = SIZES["Idle"]
-        self.setGeometry(self._rect_for(start_w, start_h, retracted=True))
-
-    def _rect_for(self, w, h, retracted=False):
-        parent_w = QApplication.primaryScreen().geometry().width()
-        x = int((parent_w - w) / 2)
-        y = -(h - self.idle_peek) if retracted else self.top_margin
-        return QRect(x, y, w, h)
-        
-    def animate_to(self, w, h, retracted=False):
-        self.emerge_anim.stop()
-        start_rect = self.geometry()
-        end_rect = self._rect_for(w, h, retracted=retracted)
-        
-        self.emerge_anim.setStartValue(start_rect)
-        self.emerge_anim.setEndValue(end_rect)
-        self.emerge_anim.start()
+class _ThreadSignals(QObject):
+    """Marshals background-thread calls onto the Qt main thread."""
+    set_state_sig    = pyqtSignal(str)
+    add_message_sig  = pyqtSignal(str, str)
+    set_tts_sig      = pyqtSignal(bool)
+    set_mode_sig     = pyqtSignal(str)
 
 
 class HarvisGUI:
+    """Main application window — a proper chat UI, not an overlay."""
+
     def __init__(self, on_text_submit_callback=None, on_voice_activate_callback=None):
         if sys.platform.startswith("linux"):
-            os.environ["QT_QPA_PLATFORM"] = "xcb"
-            os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct"
+            os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
+            os.environ.setdefault(
+                "QTWEBENGINE_CHROMIUM_FLAGS",
+                "--enable-transparent-visuals"
+            )
 
         self.app = QApplication.instance()
-        self._owns_app = False
         if not self.app:
             fmt = QSurfaceFormat()
             fmt.setAlphaBufferSize(8)
             QSurfaceFormat.setDefaultFormat(fmt)
             self.app = QApplication(sys.argv)
-            self._owns_app = True
+            self.app.setApplicationName("HARVIS")
 
+        self.on_text_submit_callback = on_text_submit_callback
         self.on_voice_activate_callback = on_voice_activate_callback
 
+        # ── Bridge ──────────────────────────────────────────────────────────
         self.bridge = BackendBridge()
-        self.bridge.on_island_clicked.connect(self.on_voice_activate)
+        self.bridge._submit_text_sig.connect(self._on_text_submitted)
+        self.bridge._voice_activate_sig.connect(self._on_voice_activate)
 
-        self.overlay = OverlayWindow(self.bridge)
-        self.overlay.show()
+        # ── Thread-safe dispatcher ───────────────────────────────────────────
+        self._signals = _ThreadSignals()
+        self._signals.set_state_sig.connect(self._handle_set_state)
+        self._signals.add_message_sig.connect(self._handle_add_message)
+        self._signals.set_tts_sig.connect(self._handle_set_tts)
+        self._signals.set_mode_sig.connect(self._handle_set_mode)
+        self.bridge._mode = "normal"
 
-    def set_state(self, state):
-        logger.info(f"GUI State set to: {state}")
-        state_map = {
-            "Idle": "idle",
-            "Listening": "listening",
-            "Thinking": "thinking",
-            "Speaking": "speaking",
-            "Error": "error"
-        }
-        react_state = state_map.get(state, "idle")
-        self.bridge.state_changed.emit(react_state)
-        
-        # Animate the window native geometry
-        target_w, target_h = SIZES.get(state, SIZES["Idle"])
-        retracted = (state == "Idle")
-        self.overlay.animate_to(target_w, target_h, retracted)
+        # ── Main window ──────────────────────────────────────────────────────
+        self.window = QMainWindow()
+        self.window.setWindowTitle("HARVIS")
+        self.window.resize(520, 760)
+        self.window.setMinimumSize(400, 500)
 
-    def add_message(self, role, text):
-        if role == "assistant":
-            self.bridge.text_updated.emit(text)
-            # Adjust window height for text roughly
-            lines = max(1, text.count('\n') + (len(text) // 50))
-            target_w = SIZES["Speaking"][0]
-            target_h = 128 + (lines * 18)
-            target_h = min(target_h, 800)
-            self.overlay.animate_to(target_w, target_h, retracted=False)
-            
-        elif role == "system" or role == "tool":
-            logger.info(f"[{role.upper()}] {text}")
+        central = QWidget()
+        self.window.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-    def on_voice_activate(self):
-        if self.on_voice_activate_callback:
-            self.on_voice_activate_callback()
+        # ── WebView ──────────────────────────────────────────────────────────
+        self.webview = QWebEngineView()
+        self.webview.setPage(DebugPage(self.webview))
+
+        self.channel = QWebChannel()
+        self.channel.registerObject("backend", self.bridge)
+        self.webview.page().setWebChannel(self.channel)
+
+        app_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "ui", "dist", "index.html")
+        )
+        logger.info(f"Loading UI: {app_path}")
+        self.webview.load(QUrl.fromLocalFile(app_path))
+        layout.addWidget(self.webview)
+
+        self.window.show()
+
+    # ── Public thread-safe API (called from background threads) ─────────────
+
+    def set_state(self, state: str):
+        self._signals.set_state_sig.emit(state)
+
+    def add_message(self, role: str, text: str):
+        self._signals.add_message_sig.emit(role, text)
+
+    def set_tts_available(self, available: bool):
+        self._signals.set_tts_sig.emit(available)
+
+    def set_mode(self, mode: str):
+        self._signals.set_mode_sig.emit(mode)
+
+    def toggle_window(self):
+        """Toggle show/hide — called by F9 IPC trigger."""
+        if self.window.isVisible():
+            self.window.hide()
+        else:
+            self.window.show()
+            self.window.raise_()
+            self.window.activateWindow()
 
     def request_confirmation_safely(self, message: str) -> bool:
         return True
+
+    # ── Internal slots (always on Qt main thread) ────────────────────────────
+
+    def _handle_set_state(self, state: str):
+        react_map = {
+            "Idle":       "idle",
+            "Listening":  "listening",
+            "Recording":  "listening",
+            "Thinking":   "thinking",
+            "Processing": "thinking",
+            "Speaking":   "speaking",
+            "Success":    "idle",
+            "Error":      "error",
+        }
+        js_state = react_map.get(state, "idle")
+        logger.info(f"GUI state → {state} ({js_state})")
+        self.bridge.state_changed.emit(js_state)
+
+    def _handle_add_message(self, role: str, text: str):
+        logger.info(f"[{role.upper()}] {text[:60] if text else ''}")
+        self.bridge.message_received.emit(role, text)
+
+    def _handle_set_tts(self, available: bool):
+        self.bridge.tts_available.emit(available)
+
+    def _handle_set_mode(self, mode: str):
+        self.bridge._mode = mode
+        logger.info(f"GUI mode → {mode}")
+        self.bridge.mode_changed.emit(mode)
+
+    def _on_text_submitted(self, text: str):
+        if text and self.on_text_submit_callback:
+            self.on_text_submit_callback(text)
+
+    def _on_voice_activate(self):
+        if self.on_voice_activate_callback:
+            self.on_voice_activate_callback()

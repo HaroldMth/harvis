@@ -11,6 +11,7 @@ import ipaddress
 import logging
 from datetime import datetime
 from tools.browser import open_url
+from tools.session import graphical_env, launch_detached
 
 logger = logging.getLogger("harvis.tools")
 
@@ -61,13 +62,27 @@ def _format_search_results(results: list[dict], limit: int) -> str:
 
 
 def _with_source_page(results: list[dict], output: str, fetch_content: bool) -> str:
-    """Include the first result's readable page text without opening a browser."""
+    """Include the first result's readable page text, falling back to Playwright Chromium if static fetch is thin."""
     if not fetch_content:
         return output
     source_url = next((str(item.get("url") or "").strip() for item in results if item.get("url")), "")
     if not source_url:
         return output
+        
     page = fetch_url(source_url, max_chars=6000)
+    # If static fetch succeeded and got substantial text (>200 chars), return it
+    if page["success"] and len(page["output"].strip()) > 200:
+        return f"{output}\n\nDetails from {source_url}:\n{page['output']}"
+
+    # Fall back to Playwright headless Chromium for JavaScript / protected pages
+    try:
+        from tools.browser_fetch import browser_fetch
+        bw_page = browser_fetch(source_url, extract="text", max_chars=6000)
+        if bw_page["success"] and bw_page["output"].strip():
+            return f"{output}\n\nDetails (Chromium render) from {source_url}:\n{bw_page['output']}"
+    except Exception as e:
+        logger.warning(f"Browser fetch fallback failed for {source_url}: {e}")
+
     if page["success"]:
         return f"{output}\n\nDetails from {source_url}:\n{page['output']}"
     return f"{output}\n\nCould not retrieve the first source page: {page['error']}"
@@ -174,12 +189,7 @@ def web_search(
     if open_in_browser:
         url = f"https://duckduckgo.com/?q={urllib.parse.quote(query)}"
         try:
-            subprocess.Popen(
-                ["xdg-open", url],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            launch_detached(["xdg-open", url])
             return {"success": True, "output": f"Opened web search for '{query}' in browser."}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -478,6 +488,7 @@ def notify(title: str, message: str = ""):
             capture_output=True,
             text=True,
             timeout=5,
+            env=graphical_env(),
         )
         return {"success": True, "output": f"Notification sent: {title}"}
     except Exception as e:

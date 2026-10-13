@@ -1,0 +1,12 @@
+PyQt6
+PyQt6-WebEngine
+python-dotenv
+numpy
+requests
+sounddevice
+faster-whisper
+edge-tts
+elevenlabs
+kokoro-onnx
+onnxruntime
+ollama

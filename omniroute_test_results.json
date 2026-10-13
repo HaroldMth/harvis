@@ -1,0 +1,247 @@
+[
+  {
+    "config": {
+      "model": "auto",
+      "reasoning_effort": null,
+      "description": "Balanced default"
+    },
+    "tests": [
+      {
+        "success": true,
+        "latency": 8.393070936203003,
+        "content_length": 35,
+        "content_preview": "The capital of France is **Paris**.",
+        "test_name": "Simple Question",
+        "expected_complexity": "low"
+      },
+      {
+        "success": true,
+        "latency": 10.787826538085938,
+        "content_length": 649,
+        "content_preview": "This is a classic relative motion problem. Let me work through it.\n\n**Step 1: Position equations**\n\nLet me set up the positions as functions of time (t = hours after 8 AM).\n\n- **Train A (from NYC)**: ...",
+        "test_name": "Complex Reasoning",
+        "expected_complexity": "medium"
+      },
+      {
+        "success": true,
+        "latency": 14.108372449874878,
+        "content_length": 1484,
+        "content_preview": "Here\u2019s a clean Python function to find the longest palindromic substring:\n\n```python\ndef longest_palindromic_substring(s: str) -> str:\n    if not s:\n        return \"\"\n\n    start, max_len = 0, 1\n\n    d...",
+        "test_name": "Code Analysis",
+        "expected_complexity": "high"
+      },
+      {
+        "success": false,
+        "error": "HTTPConnectionPool(host='localhost', port=20128): Read timed out. (read timeout=30)",
+        "latency": 30.031210899353027,
+        "test_name": "Creative Reasoning",
+        "expected_complexity": "high"
+      }
+    ]
+  },
+  {
+    "config": {
+      "model": "auto/smart",
+      "reasoning_effort": null,
+      "description": "Quality-first with exploration"
+    },
+    "tests": [
+      {
+        "success": true,
+        "latency": 16.199470281600952,
+        "content_length": 35,
+        "content_preview": "The capital of France is **Paris**.",
+        "test_name": "Simple Question",
+        "expected_complexity": "low"
+      },
+      {
+        "success": true,
+        "latency": 11.385825157165527,
+        "content_length": 806,
+        "content_preview": "Harold, they'll meet at **~2:29 PM** (assuming same time zone).\n\nHere's the math:\n\nLet `t` = hours after 8 AM\n\n*   Train 1 (from NY): `60 * t` miles\n*   Train 2 (from Chicago): `75 * (t - 1)` miles - ...",
+        "test_name": "Complex Reasoning",
+        "expected_complexity": "medium"
+      },
+      {
+        "success": true,
+        "latency": 20.873433589935303,
+        "content_length": 2392,
+        "content_preview": "Here's a Python solution using the **expand around center** approach, Harold:\n\n## Approach\n\nThe idea is simple: for every possible center of a palindrome, we expand outward as long as the characters o...",
+        "test_name": "Code Analysis",
+        "expected_complexity": "high"
+      },
+      {
+        "success": true,
+        "latency": 20.277469158172607,
+        "content_length": 3093,
+        "content_preview": "# Dream Recording & Sharing: A Societal Analysis\n\nFascinating thought experiment, Harold. Let me break this down across the three dimensions you mentioned.\n\n---\n\n## Economic Implications\n\n**New Indust...",
+        "test_name": "Creative Reasoning",
+        "expected_complexity": "high"
+      }
+    ]
+  },
+  {
+    "config": {
+      "model": "auto/smart",
+      "reasoning_effort": "high",
+      "description": "Quality-first with high reasoning"
+    },
+    "tests": [
+      {
+        "success": true,
+        "latency": 4.197423696517944,
+        "content_length": 35,
+        "content_preview": "The capital of France is **Paris**.",
+        "test_name": "Simple Question",
+        "expected_complexity": "low"
+      },
+      {
+        "success": true,
+        "latency": 9.112106323242188,
+        "content_length": 835,
+        "content_preview": "Let's work through the classic \"two trains\" problem step by step:\n\n1. **Head start** \u2014 The New York train leaves at 8 AM, one hour before the Chicago train (9 AM). In that hour, it travels:\n   \\(60 \\t...",
+        "test_name": "Complex Reasoning",
+        "expected_complexity": "medium"
+      },
+      {
+        "success": true,
+        "latency": 16.901791095733643,
+        "content_length": 2858,
+        "content_preview": "Here's a Python function that finds the longest palindromic substring using the **\"expand around center\"** approach:\n\n```python\ndef longest_palindrome(s: str) -> str:\n    \"\"\"\n    Find the longest pali...",
+        "test_name": "Code Analysis",
+        "expected_complexity": "high"
+      },
+      {
+        "success": true,
+        "latency": 29.826277256011963,
+        "content_length": 4863,
+        "content_preview": "This is a fascinating thought experiment, Harold. Let me dive into it.\n\n---\n\n# \ud83e\udde0 The World of Recordable Dreams\n\n## Economic Implications\n\n**New Industries & Markets**\n- **Dream Economy**: A massive n...",
+        "test_name": "Creative Reasoning",
+        "expected_complexity": "high"
+      }
+    ]
+  },
+  {
+    "config": {
+      "model": "auto/fast",
+      "reasoning_effort": null,
+      "description": "Low-latency prioritized"
+    },
+    "tests": [
+      {
+        "success": true,
+        "latency": 18.813711881637573,
+        "content_length": 245,
+        "content_preview": "The capital of France is **Paris**. It's located in the north-central part of the country along the Seine River and is one of the world's most iconic cities, known for landmarks like the Eiffel Tower,...",
+        "test_name": "Simple Question",
+        "expected_complexity": "low"
+      },
+      {
+        "success": true,
+        "latency": 9.252948999404907,
+        "content_length": 339,
+        "content_preview": "Assuming both times are in the same time zone and the trains travel toward each other:\n\n- By 9:00 AM, the New York train has traveled **60 miles**.\n- Remaining distance: `800 \u2212 60 = 740 miles`\n- Combi...",
+        "test_name": "Complex Reasoning",
+        "expected_complexity": "medium"
+      },
+      {
+        "success": true,
+        "latency": 16.76182746887207,
+        "content_length": 1496,
+        "content_preview": "```python\ndef longest_palindromic_substring(s: str) -> str:\n    \"\"\"Return the longest palindromic substring in s.\"\"\"\n    if len(s) < 2:\n        return s\n\n    start = end = 0\n\n    def expand_from_cente...",
+        "test_name": "Code Analysis",
+        "expected_complexity": "high"
+      },
+      {
+        "success": true,
+        "latency": 23.974860668182373,
+        "content_length": 6722,
+        "content_preview": "In a world where dreams can be recorded and shared, Harold, it would be the most disruptive technology since the internet \u2014 maybe since language itself. It would collapse the last truly private fronti...",
+        "test_name": "Creative Reasoning",
+        "expected_complexity": "high"
+      }
+    ]
+  },
+  {
+    "config": {
+      "model": "auto/coding",
+      "reasoning_effort": null,
+      "description": "Code-optimized"
+    },
+    "tests": [
+      {
+        "success": true,
+        "latency": 23.799926280975342,
+        "content_length": 35,
+        "content_preview": "The capital of France is **Paris**.",
+        "test_name": "Simple Question",
+        "expected_complexity": "low"
+      },
+      {
+        "success": true,
+        "latency": 28.447885513305664,
+        "content_length": 791,
+        "content_preview": "Harold, they'll meet at about **2:29 PM** \u2014 assuming both times are in the same time zone.\n\nHere's the math:\n\nLet `t` = hours after 8 AM when they meet.\n\n* Train from New York travels for `t` hours: `...",
+        "test_name": "Complex Reasoning",
+        "expected_complexity": "medium"
+      },
+      {
+        "success": true,
+        "latency": 11.389939546585083,
+        "content_length": 2791,
+        "content_preview": "Here's a Python function to find the longest palindromic substring using the **expand around center** approach:\n\n```python\ndef longest_palindrome(s: str) -> str:\n    if not s or len(s) < 1:\n        re...",
+        "test_name": "Code Analysis",
+        "expected_complexity": "high"
+      },
+      {
+        "success": true,
+        "latency": 27.729191064834595,
+        "content_length": 4053,
+        "content_preview": "# \ud83c\udf19 Dream Recording & Sharing: A Societal Thought Experiment\n\nWhat a fascinating hypothetical, Harold! Let's dive in.\n\n---\n\n## \ud83d\udcc8 Economic Implications\n\n- **Dream Industry** \u2014 A massive new market emer...",
+        "test_name": "Creative Reasoning",
+        "expected_complexity": "high"
+      }
+    ]
+  },
+  {
+    "config": {
+      "model": "auto/coding",
+      "reasoning_effort": "medium",
+      "description": "Code-optimized with reasoning"
+    },
+    "tests": [
+      {
+        "success": true,
+        "latency": 3.1388566493988037,
+        "content_length": 145,
+        "content_preview": "The capital of France is **Paris**. It's also the country's largest city and has been a major center of art, culture, and politics for centuries.",
+        "test_name": "Simple Question",
+        "expected_complexity": "low"
+      },
+      {
+        "success": true,
+        "latency": 27.664649963378906,
+        "content_length": 736,
+        "content_preview": "# Train Meeting Problem \ud83d\ude82\n\nLet me work through this step by step:\n\n## Setup\n\n| | New York Train | Chicago Train |\n|---|---|---|\n| **Departs** | 8:00 AM | 9:00 AM |\n| **Speed** | 60 mph | 75 mph |\n\n## ...",
+        "test_name": "Complex Reasoning",
+        "expected_complexity": "medium"
+      },
+      {
+        "success": true,
+        "latency": 6.731959581375122,
+        "content_length": 2444,
+        "content_preview": "## Longest Palindromic Substring\n\nBelow is an efficient Python solution using the **expand around center** approach. It's intuitive, easy to implement, and runs in **O(n\u00b2)** time with **O(1)** extra s...",
+        "test_name": "Code Analysis",
+        "expected_complexity": "high"
+      },
+      {
+        "success": true,
+        "latency": 21.68141269683838,
+        "content_length": 3948,
+        "content_preview": "# \ud83c\udf19 The Dream-Sharing World: A Thought Experiment\n\nGreat question, Harold. Let's dive into this speculative scenario across the three dimensions you mentioned.\n\n---\n\n## \ud83d\udcb0 Economic Implications\n\n- **Ne...",
+        "test_name": "Creative Reasoning",
+        "expected_complexity": "high"
+      }
+    ]
+  }
+]
