@@ -247,6 +247,26 @@ def extract_tool_call_from_text(text: str) -> dict | None:
             return {"tool_name": name, "tool_args": args}
         except Exception:
             pass
+
+    # Pattern 3: XML tag style: <tool_call><function=...><parameter=...>...</parameter></function></tool_call>
+    xml_tc_match = re.search(r'<tool_call>\s*<function=(?:function=)?([a-zA-Z0-9_]+)>(.*?)</function>\s*</tool_call>', text, re.DOTALL)
+    if xml_tc_match:
+        name = xml_tc_match.group(1)
+        body = xml_tc_match.group(2)
+        args = {}
+        for param_match in re.finditer(r'<parameter=([a-zA-Z0-9_]+)>(.*?)</parameter>', body, re.DOTALL):
+            param_name = param_match.group(1)
+            param_val = param_match.group(2).strip()
+            # If parameter looks like JSON, parse it, otherwise keep string
+            if (param_val.startswith("{") and param_val.endswith("}")) or (param_val.startswith("[") and param_val.endswith("]")):
+                try:
+                    param_val = json.loads(param_val)
+                except Exception:
+                    pass
+            args[param_name] = param_val
+        if name:
+            return {"tool_name": name, "tool_args": args}
+
     return None
 
 
@@ -371,8 +391,7 @@ def call_openai_compatible(url, headers, payload, stream_callback=None, timeout=
         raise RuntimeError(f"Streaming API request to {url} failed with status {response.status_code}: {response.text}")
 
     accumulated_content = ""
-    tool_call_builder = {"id": "", "name": "", "arguments": ""}
-    has_tool_call = False
+    tool_calls_by_index = {}
     in_think = False
 
     for line in response.iter_lines():
@@ -429,18 +448,21 @@ def call_openai_compatible(url, headers, payload, stream_callback=None, timeout=
                         break
 
             tool_calls = delta.get("tool_calls")
-            if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
-                has_tool_call = True
-                tc = tool_calls[0]
-                if tc.get("id"):
-                    tool_call_builder["id"] = tc["id"]
-                fn = tc.get("function", {})
-                if fn.get("name"):
-                    tool_call_builder["name"] = fn["name"]
-                if "arguments" in fn:
-                    tool_call_builder["arguments"] = accumulate_stream_arguments(
-                        tool_call_builder["arguments"], fn.get("arguments")
-                    )
+            if tool_calls and isinstance(tool_calls, list):
+                for tc in tool_calls:
+                    idx = tc.get("index", 0)
+                    if idx not in tool_calls_by_index:
+                        tool_calls_by_index[idx] = {"id": "", "name": "", "arguments": ""}
+                    entry = tool_calls_by_index[idx]
+                    if tc.get("id"):
+                        entry["id"] = tc["id"]
+                    fn = tc.get("function", {})
+                    if fn.get("name"):
+                        entry["name"] = fn["name"]
+                    if "arguments" in fn and fn["arguments"] is not None:
+                        entry["arguments"] = accumulate_stream_arguments(
+                            entry["arguments"], fn["arguments"]
+                        )
         except Exception:
             pass
 
@@ -452,14 +474,17 @@ def call_openai_compatible(url, headers, payload, stream_callback=None, timeout=
             except Exception:
                 pass
 
-    if has_tool_call and tool_call_builder["name"]:
-        parsed_args = parse_tool_arguments(tool_call_builder["arguments"])
-        return {
-            "type": "tool_call",
-            "content": None,
-            "tool_name": tool_call_builder["name"],
-            "tool_args": parsed_args
-        }
+    # Pick the first valid completed tool call
+    for idx in sorted(tool_calls_by_index.keys()):
+        tb = tool_calls_by_index[idx]
+        if tb["name"]:
+            parsed_args = parse_tool_arguments(tb["arguments"])
+            return {
+                "type": "tool_call",
+                "content": None,
+                "tool_name": tb["name"],
+                "tool_args": parsed_args
+            }
 
     return {
         "type": "text",
@@ -476,10 +501,16 @@ def call_groq(history, system_prompt=None, stream_callback=None):
     url = "https://api.groq.com/openai/v1/chat/completions"
     messages = map_history_to_openai(history, system_prompt)
     
+    # Send high-frequency core tools to keep total input tokens safely under Groq's 7,000 ITPM limit
+    # while allowing full HARVIS system prompt execution
+    core_tool_names = {"shell_exec", "file_op", "list_dir", "system_info", "open_app", "open_url", "web_search", "weather", "send_telegram"}
+    all_tools = get_openai_tools()
+    focused_tools = [t for t in all_tools if t.get("function", {}).get("name") in core_tool_names]
+    
     payload = {
         "model": "qwen/qwen3.8-27b",
         "messages": messages,
-        "tools": get_openai_tools()
+        "tools": focused_tools or all_tools
     }
     
     headers = {
@@ -676,8 +707,7 @@ def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model
         raise RuntimeError(f"OmniRoute API failed with status {response.status_code}: {response.text}")
 
     accumulated_content = ""
-    tool_call_builder = {"id": "", "name": "", "arguments": ""}
-    has_tool_call = False
+    tool_calls_by_index = {}
     stream_model = None
 
     for line in response.iter_lines():
@@ -705,33 +735,40 @@ def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model
                     stream_callback(content_chunk)
 
             tool_calls = delta.get("tool_calls")
-            if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
-                has_tool_call = True
-                tc = tool_calls[0]
-                if tc.get("id"):
-                    tool_call_builder["id"] = tc["id"]
-                fn = tc.get("function", {})
-                if fn.get("name"):
-                    tool_call_builder["name"] = fn["name"]
-                if "arguments" in fn:
-                    tool_call_builder["arguments"] = accumulate_stream_arguments(
-                        tool_call_builder["arguments"], fn.get("arguments")
-                    )
+            if tool_calls and isinstance(tool_calls, list):
+                for tc in tool_calls:
+                    idx = tc.get("index", 0)
+                    if idx not in tool_calls_by_index:
+                        tool_calls_by_index[idx] = {"id": "", "name": "", "arguments": ""}
+                    entry = tool_calls_by_index[idx]
+                    if tc.get("id"):
+                        entry["id"] = tc["id"]
+                    fn = tc.get("function", {})
+                    if fn.get("name"):
+                        entry["name"] = fn["name"]
+                    if "arguments" in fn and fn["arguments"] is not None:
+                        entry["arguments"] = accumulate_stream_arguments(
+                            entry["arguments"], fn["arguments"]
+                        )
         except Exception:
             pass
 
     routed = _omniroute_routed_id(response, stream_model=stream_model) or payload["model"]
-    if has_tool_call and tool_call_builder["name"]:
-        parsed_args = parse_tool_arguments(tool_call_builder["arguments"])
-        return {
-            "type": "tool_call",
-            "content": None,
-            "tool_name": tool_call_builder["name"],
-            "tool_args": parsed_args,
-            "routed_model": routed,
-        }
 
-    if not has_tool_call and accumulated_content:
+    # Pick the first valid tool call by index
+    for idx in sorted(tool_calls_by_index.keys()):
+        tb = tool_calls_by_index[idx]
+        if tb["name"]:
+            parsed_args = parse_tool_arguments(tb["arguments"])
+            return {
+                "type": "tool_call",
+                "content": None,
+                "tool_name": tb["name"],
+                "tool_args": parsed_args,
+                "routed_model": routed,
+            }
+
+    if not tool_calls_by_index and accumulated_content:
         text_tc = extract_tool_call_from_text(accumulated_content)
         if text_tc:
             return {
@@ -806,4 +843,90 @@ def call_opus_proxy(history, system_prompt=None, stream_callback=None, enable_to
         except Exception:
             pass
         raise e
+
+
+def call_omegatech_secret(history, system_prompt=None, stream_callback=None, enable_tools=True, model="claude-fable-5", **kwargs):
+    """Provider for Omegatech /Secret endpoint with Claude Fable 5, Claude Opus 4.7, and GPT-5.5."""
+    url = "https://api.omegatech.app/api/ai/Secret"
+    
+    # Format conversation history into full context so model has complete conversational memory
+    history_lines = []
+    for msg in history[-12:]:  # last 12 turns for deep context
+        r = msg.get("role", "user")
+        c = msg.get("content", "")
+        if isinstance(c, list):
+            c_text = " ".join([p.get("text", "") for p in c if isinstance(p, dict)])
+        else:
+            c_text = str(c or "")
+        
+        if r == "user":
+            history_lines.append(f"User (Harold): {c_text}")
+        elif r == "assistant":
+            # If assistant issued a tool call, show it concisely
+            if '"tool_name"' in c_text:
+                try:
+                    tc_data = json.loads(c_text)
+                    history_lines.append(f"Assistant Action: executed {tc_data.get('tool_name')} with {tc_data.get('tool_args')}")
+                except Exception:
+                    history_lines.append(f"Assistant: {c_text}")
+            else:
+                history_lines.append(f"Assistant: {c_text}")
+        elif r == "tool":
+            history_lines.append(f"Tool Output / Environment Result: {c_text}")
+
+    full_message = "\n".join(history_lines) if history_lines else "Hello"
+
+    # Enforce proactive self-correction and tool execution instructions
+    enhanced_sys = (system_prompt or "")
+    enhanced_sys += (
+        "\n\n[USER AWARENESS & PERSISTENT CONTEXT]\n"
+        "You are HARVIS running locally on Harold's Linux machine (CachyOS/Arch).\n"
+        "The user you are speaking to is HAROLD.\n"
+        "Do NOT repeat canned script formulas or hardcode robotic pool names.\n\n"
+        "[AUTONOMOUS TOOL EXECUTION & SELF-CORRECTION]\n"
+        "When Harold asks to check, inspect, run, or list anything on the system:\n"
+        "1. EXECUTE the tool immediately using XML: <tool_call><function=TOOL_NAME><parameter=ARG_NAME>ARG_VALUE</parameter></function></tool_call>\n"
+        "2. If a tool fails (e.g. 'No such file or directory', command not found, or empty results):\n"
+        "   DO NOT simply say 'I couldn't complete that' or give up!\n"
+        "   IMMEDIATELY BE AWARE OF THE ERROR and run an alternative command (e.g. use `find ~ -name ...`, `locate`, check parent directories, or search paths) to diagnose and fix it.\n"
+        "3. Silently call the tool. Do NOT narrate or announce 'Executing now...'. Just emit the tool call."
+    )
+
+    params = {
+        "action": "chat",
+        "message": full_message,
+        "model": model,
+        "temperature": 0.2,
+    }
+    if enhanced_sys:
+        params["systemPrompt"] = enhanced_sys
+
+    logger.info(f"Omegatech Secret model={model}")
+    response = requests.get(url, params=params, timeout=(10, 60))
+    if response.status_code != 200:
+        raise RuntimeError(f"Omegatech Secret API failed ({response.status_code}): {response.text[:200]}")
+
+    body = response.json()
+    reply = body.get("data", {}).get("reply", "")
+
+    # Check if model emitted a tool call via XML or JSON
+    tc = extract_tool_call_from_text(reply)
+    if tc and enable_tools:
+        logger.info(f"Omegatech Secret detected tool_call: {tc['tool_name']}")
+        return {
+            "type": "tool_call",
+            "content": None,
+            "tool_name": tc["tool_name"],
+            "tool_args": tc["tool_args"],
+            "routed_model": model,
+        }
+
+    return {
+        "type": "text",
+        "content": reply,
+        "tool_name": None,
+        "tool_args": None,
+        "routed_model": model,
+    }
+
 

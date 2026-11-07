@@ -17,21 +17,30 @@ import logging
 logger = logging.getLogger("harvis.state_manager")
 
 BASE_TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".harvis", "tasks")
+BASE_SESSIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".harvis", "sessions")
 
 
 class TaskManager:
-    def __init__(self, task_id: str, tasks_dir: str = BASE_TASKS_DIR):
+    def __init__(self, task_id: str, tasks_dir: str = BASE_TASKS_DIR, session_id: str = None, user_id: str = None):
         self.task_id = task_id
+        self.session_id = session_id or "general"
+        self.user_id = user_id
         self.dir = os.path.join(tasks_dir, task_id)
         os.makedirs(self.dir, exist_ok=True)
         self.plan_path = os.path.join(self.dir, "plan.md")
         self.notes_path = os.path.join(self.dir, "notes.md")
         self.state_path = os.path.join(self.dir, "state.json")
 
+        # Session memory directory for cumulative cross-turn knowledge
+        self.session_dir = os.path.join(BASE_SESSIONS_DIR, self.session_id)
+        os.makedirs(self.session_dir, exist_ok=True)
+        self.session_notes_path = os.path.join(self.session_dir, "session_notes.md")
+
     def init_task(self, goal: str, max_steps: int = 25, max_duration_sec: int = 600) -> dict:
         """Initializes task state on disk."""
         initial_state = {
             "task_id": self.task_id,
+            "session_id": self.session_id,
             "goal": goal,
             "status": "running",
             "step_count": 0,
@@ -49,9 +58,20 @@ class TaskManager:
             with open(self.plan_path, "w", encoding="utf-8") as f:
                 f.write(f"# Goal: {goal}\n")
 
+        # Load prior session notes if continuing in this session
+        prior_session_notes = ""
+        if self.session_id != "general" and os.path.exists(self.session_notes_path):
+            try:
+                with open(self.session_notes_path, "r", encoding="utf-8") as f:
+                    prior_session_notes = f.read().strip()
+            except Exception:
+                pass
+
         if not os.path.exists(self.notes_path):
             with open(self.notes_path, "w", encoding="utf-8") as f:
-                f.write(f"# Working Notes for Task: {self.task_id}\n\n")
+                f.write(f"# Working Notes for Task: {self.task_id} (Session: {self.session_id})\n\n")
+                if prior_session_notes:
+                    f.write(f"## Prior Session Context:\n{prior_session_notes}\n\n## Current Task Notes:\n")
 
         return initial_state
 
@@ -97,9 +117,44 @@ class TaskManager:
         return ""
 
     def append_note(self, note: str):
-        """Appends discovery or fact to notes.md."""
+        """Appends discovery or fact to notes.md and session_notes.md."""
+        entry = f"- {time.strftime('%H:%M:%S')}: {note.strip()}\n"
         with open(self.notes_path, "a", encoding="utf-8") as f:
-            f.write(f"- {time.strftime('%H:%M:%S')}: {note.strip()}\n")
+            f.write(entry)
+        if self.session_id != "general":
+            try:
+                with open(self.session_notes_path, "a", encoding="utf-8") as f:
+                    f.write(entry)
+            except Exception:
+                pass
+
+    def track_working_dir(self, tool_name: str, tool_args: dict):
+        """Detects project directory changes and updates the active session."""
+        if tool_name == "shell_exec":
+            cmd = (tool_args or {}).get("cmd", "") or ""
+            import re
+            m = re.search(r"cd\s+([~/\w\.-]+)", cmd)
+            if m:
+                target = os.path.expanduser(m.group(1).strip())
+                if os.path.isdir(target):
+                    try:
+                        from db.store import update_session
+                        update_session(self.session_id, active_dir=target)
+                    except Exception:
+                        pass
+                    return target
+            m_create = re.search(r"(?:flutter\s+create|cargo\s+new|mkdir\s+-p?)\s+([~/\w\.-]+)", cmd)
+            if m_create:
+                raw_target = os.path.expanduser(m_create.group(1).strip())
+                target = raw_target if os.path.isabs(raw_target) else os.path.join(os.path.expanduser("~"), raw_target)
+                if os.path.isdir(target):
+                    try:
+                        from db.store import update_session
+                        update_session(self.session_id, active_dir=target)
+                    except Exception:
+                        pass
+                    return target
+        return None
 
     @staticmethod
     def compute_action_hash(tool_name: str, tool_args: dict) -> str:
@@ -116,6 +171,9 @@ class TaskManager:
         state = self.load_state()
         state["step_count"] = state.get("step_count", 0) + 1
         
+        # Track project directory if changed
+        self.track_working_dir(tool_name, tool_args)
+
         act_hash = self.compute_action_hash(tool_name, tool_args)
         history = state.get("action_history", [])
         
@@ -150,13 +208,24 @@ class TaskManager:
         notes = self.read_notes()
         state = self.load_state()
 
-        # Extract last 10 lines of notes to keep prompt concise
+        # Extract last lines of notes to keep prompt concise
         notes_lines = notes.splitlines()
         notes_snippet = "\n".join(notes_lines[-12:]) if len(notes_lines) > 12 else notes
 
+        # Ambient context for general chat
+        if self.session_id == "general" and self.user_id:
+            try:
+                from db.store import get_recent_sessions_summary
+                ambient = get_recent_sessions_summary(self.user_id)
+                if ambient:
+                    notes_snippet += f"\n\n{ambient}\n"
+            except Exception:
+                pass
+
         user_content = (
             f"### Active Goal: {state.get('goal', 'Execute task')}\n"
-            f"Step: {state.get('step_count', 0)} / {state.get('max_steps', 25)}\n\n"
+            f"Step: {state.get('step_count', 0)} / {state.get('max_steps', 25)}\n"
+            f"Session: `{self.session_id}`\n\n"
             f"### Current Plan (`plan.md`):\n{plan}\n\n"
             f"### Working Discoveries (`notes.md`):\n{notes_snippet}\n"
         )

@@ -9,11 +9,21 @@ Simplified 2-Tier Engine Architecture:
 MODES = ("normal", "fast")
 DEFAULT_MODE = "normal"
 
-DEFAULT_ENGINE = "kr/claude-sonnet-4.5"
-DEFAULT_FALLBACKS = ["kr/deepseek-3.2", "kr/qwen3-coder-next"]
+DEFAULT_ENGINE = "anthropic/claude-sonnet-5"
+DEFAULT_FALLBACKS = [
+    "anthropic/claude-haiku-4.5",
+    "openai/gpt-4.1",
+    "deepseek/deepseek-chat",
+    "ddgw/claude-haiku-4-5",
+    "qwen/qwen-2.5-coder-32b-instruct",
+]
 
-FAST_ENGINE = "kr/glm-5"
-FAST_FALLBACKS = ["kr/minimax-m2.5"]
+FAST_ENGINE = "anthropic/claude-haiku-4.5"
+FAST_FALLBACKS = [
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-120b",
+    "codestral-latest",
+]
 
 ALIASES = {
     "fast": "fast",
@@ -21,28 +31,16 @@ ALIASES = {
     "speed": "fast",
     "normal": "normal",
     "default": "normal",
-    "chat": "normal",
-    "agent": "normal",
-    # Legacy aliases gracefully re-routed to normal
-    "ultra": "normal",
-    "pro": "normal",
-    "architect": "normal",
-    "think": "normal",
-    "reasoning": "normal",
-    "coding": "normal",
-    "code": "normal",
-    "cheap": "fast",
-    "vision": "normal",
 }
 
 MODE_HELP = (
     "🤖 *HARVIS Engine Modes:*\n"
-    "• `Default` — Autonomous Master Engine (`kr/claude-sonnet-4.5`)\n"
-    "   Deep verification, autonomous tool calling, self-correcting harness.\n"
-    "   *Failovers:* `kr/deepseek-3.2` ➔ `kr/qwen3-coder-next`\n\n"
-    "• `/fast <query>` — High-Speed Sprint (`kr/glm-5` ~1.8s)\n"
+    "• `Default` — Opus Proxy (`claude-fable-5` / `claude-opus-4-8` off-peak) ➔ OmniRoute (`openai/gpt-4.1`)\n"
+    "   Deep verification, tool calling, and self-correcting harness.\n"
+    "   *Failovers:* `deepseek/deepseek-chat` ➔ `ddgw/claude-haiku-4-5`\n\n"
+    "• `/fast <query>` — High-Speed Sprint (`qwen/qwen3.8-27b` on Groq LPU)\n"
     "   Instant factual answers, rapid lookups, fast status checks.\n"
-    "   *Failover:* `kr/minimax-m2.5`\n\n"
+    "   *Failover:* `openai/gpt-oss-120b` ➔ `codestral-latest`\n\n"
     "• `/mode` — Show active engine configuration"
 )
 
@@ -105,7 +103,7 @@ def switch_message(mode: str) -> str:
     engine = get_engine(mode)
     if mode == "fast":
         return f"⚡ Mode switched to **Fast Sprint** (`{engine}` ~1.8s)"
-    return f"🛡️ Mode switched to **Autonomous Master** (`{engine}`)"
+    return f"🛡️ Mode switched to **Default** (`{engine}`)"
 
 
 def status_message(mode: str) -> str:

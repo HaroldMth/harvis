@@ -209,3 +209,203 @@ def is_provider_healthy(provider, cooldown_seconds=300):
         # Fallback to healthy if parse error
         return True
 
+
+# ─── Session Management ───────────────────────────────────────────────────────
+import random
+import string
+import datetime
+
+def generate_session_id() -> str:
+    """Generate a unique 4-character lowercase alphanumeric ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    chars = string.ascii_lowercase + string.digits
+    for _ in range(100):
+        sid = "".join(random.choice(chars) for _ in range(4))
+        if sid in ("main", "help", "fast", "mode", "stop"):
+            continue
+        cursor.execute("SELECT id FROM sessions WHERE id = ?", (sid,))
+        if not cursor.fetchone():
+            conn.close()
+            return sid
+    conn.close()
+    return "".join(random.choice(chars) for _ in range(4))
+
+
+def get_active_session(user_id: str) -> str:
+    """Returns active session ID for user, defaulting to 'general'."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT session_id FROM user_active_session WHERE user_id = ?", (str(user_id),))
+    row = cursor.fetchone()
+    conn.close()
+    if row and row[0]:
+        return row[0]
+    return "general"
+
+
+def set_active_session(user_id: str, session_id: str):
+    """Sets active session for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.datetime.now().isoformat()
+    cursor.execute(
+        "INSERT OR REPLACE INTO user_active_session (user_id, session_id) VALUES (?, ?)",
+        (str(user_id), session_id)
+    )
+    cursor.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (now, session_id))
+    conn.commit()
+    conn.close()
+
+
+def create_session(user_id: str, title: str = None, active_dir: str = None, session_id: str = None) -> str:
+    """Creates a new session and sets it as active."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    sid = session_id or generate_session_id()
+    display_title = title or f"Session {sid}"
+    now = datetime.datetime.now().isoformat()
+    cursor.execute(
+        """INSERT OR REPLACE INTO sessions 
+           (id, user_id, title, active_dir, notes, status, created_at, last_active)
+           VALUES (?, ?, ?, ?, ?, 'active', ?, ?)""",
+        (sid, str(user_id), display_title, active_dir or "", "", now, now)
+    )
+    conn.commit()
+    conn.close()
+    set_active_session(user_id, sid)
+    return sid
+
+
+def list_user_sessions(user_id: str, limit: int = 10) -> list[dict]:
+    """Lists recent sessions for user with active indicator and message counts."""
+    active_sid = get_active_session(user_id)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT s.id, s.title, s.active_dir, s.notes, s.created_at, s.last_active,
+                  (SELECT COUNT(*) FROM messages m WHERE m.session_id LIKE '%' || s.id) as msg_count
+           FROM sessions s
+           WHERE s.user_id = ? AND s.status = 'active'
+           ORDER BY s.last_active DESC LIMIT ?""",
+        (str(user_id), limit)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    
+    sessions = []
+    found_general = False
+    for r in rows:
+        is_active = (r[0] == active_sid)
+        if r[0] == "general":
+            found_general = True
+        sessions.append({
+            "id": r[0],
+            "title": r[1],
+            "active_dir": r[2],
+            "notes": r[3],
+            "created_at": r[4],
+            "last_active": r[5],
+            "msg_count": r[6],
+            "is_active": is_active,
+        })
+    
+    # Always include general session if not in list
+    if not found_general:
+        sessions.append({
+            "id": "general",
+            "title": "General Scratchpad",
+            "active_dir": "",
+            "notes": "Default general conversation session",
+            "created_at": "",
+            "last_active": "",
+            "msg_count": 0,
+            "is_active": (active_sid == "general"),
+        })
+    return sessions
+
+
+def get_session_info(session_id: str) -> dict | None:
+    """Returns detailed session info dictionary."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT id, user_id, title, active_dir, notes, status, created_at, last_active,
+                  (SELECT COUNT(*) FROM messages WHERE session_id LIKE '%' || sessions.id) as msg_count
+           FROM sessions WHERE id = ?""",
+        (session_id,)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        if session_id == "general":
+            return {
+                "id": "general", "user_id": "", "title": "General Scratchpad",
+                "active_dir": "", "notes": "General conversation session",
+                "status": "active", "created_at": "-", "last_active": "-",
+                "msg_count": 0
+            }
+        return None
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "title": row[2],
+        "active_dir": row[3],
+        "notes": row[4],
+        "status": row[5],
+        "created_at": row[6],
+        "last_active": row[7],
+        "msg_count": row[8]
+    }
+
+
+def update_session(session_id: str, title: str = None, active_dir: str = None, notes: str = None, status: str = None):
+    """Updates session fields."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.datetime.now().isoformat()
+    fields = []
+    vals = []
+    if title is not None:
+        fields.append("title = ?")
+        vals.append(title)
+    if active_dir is not None:
+        fields.append("active_dir = ?")
+        vals.append(active_dir)
+    if notes is not None:
+        fields.append("notes = ?")
+        vals.append(notes)
+    if status is not None:
+        fields.append("status = ?")
+        vals.append(status)
+    fields.append("last_active = ?")
+    vals.append(now)
+    vals.append(session_id)
+    query = f"UPDATE sessions SET {', '.join(fields)} WHERE id = ?"
+    cursor.execute(query, tuple(vals))
+    conn.commit()
+    conn.close()
+
+
+def get_recent_sessions_summary(user_id: str, exclude_session: str = "general", limit: int = 2) -> str:
+    """Returns a compact 2-3 line ambient digest of recent tasks for general chat."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT id, title, active_dir, notes, last_active 
+           FROM sessions 
+           WHERE user_id = ? AND id != ? AND status = 'active'
+           ORDER BY last_active DESC LIMIT ?""",
+        (str(user_id), exclude_session, limit)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    if not rows:
+        return ""
+    lines = ["[RECENT SESSIONS / ONGOING PROJECTS]:"]
+    for r in rows:
+        dir_str = f" in `{r[2]}`" if r[2] else ""
+        notes_str = f" - {r[3]}" if r[3] else ""
+        lines.append(f"• Session `{r[0]}`: {r[1]}{dir_str}{notes_str}")
+    return "\n".join(lines)
+

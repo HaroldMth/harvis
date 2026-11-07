@@ -1466,3 +1466,1332 @@ Review this file anytime to diagnose performance issues and upgrade capabilities
 - **Details:** Mode: normal, Model: gpt-5.6-luna, History items: 46
 - **💡 Enhancement Recommendation:** Consider adjusting timeout or ranking provider 'omniroute' lower if slowdown persists.
 
+### [2026-10-14 21:24:35] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:24:36] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7818, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:24:37] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:24:38] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:24:54] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:24:54] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8060, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:24:56] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:24:57] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:25:06] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:25:07] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8324, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:25:08] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:25:09] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:25:29] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:25:30] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8543, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:25:31] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:25:32] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:25:43] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:25:44] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8937, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:25:45] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:25:45] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:26:46] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:26:46] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7846, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:26:48] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:26:48] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:26:56] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:26:57] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8080, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:26:58] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:26:59] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:27:09] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:27:10] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 9199, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:27:11] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:27:12] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:27:20] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:27:20] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 10453, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:27:21] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:27:22] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:27:28] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:27:29] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 10629, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:27:30] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:27:31] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:27:41] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:27:41] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 10839, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:27:42] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:27:43] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:27:52] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:27:52] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 11032, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:27:53] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:27:54] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:28:06] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:28:08] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 11243, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:28:09] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:28:10] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:28:16] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:28:17] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 11520, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:28:18] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:28:19] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:28:33] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:28:34] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 11793, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:28:35] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:28:36] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:29:13] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:29:14] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7900, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:29:15] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:29:16] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:29:23] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:29:23] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8017, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:29:24] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:29:25] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:30:34] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:30:35] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7937, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:30:37] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:30:37] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:31:13] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:31:14] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8399, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:31:15] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:31:16] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:31:23] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:31:24] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 8567, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:31:25] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:31:26] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:31:32] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:31:33] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 11258, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:31:34] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:31:35] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:31:43] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:31:44] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 11647, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:31:45] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:31:45] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:31:54] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:31:55] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 12054, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:31:56] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:31:57] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:32:05] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:32:06] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 12194, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:32:07] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:32:08] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:32:16] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:32:16] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 12469, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:32:18] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:32:19] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:32:21] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 58 min. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-14 21:32:21] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 34.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-14 21:55:52] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"[kiro] All 1 connection(s) credits exhausted — please reconnect in the dashboard","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:55:53] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7826, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:55:55] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:55:56] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:55:59] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 34 min. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-14 21:55:59] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-14 21:56:26] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: kiro.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 21:56:27] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7813, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 21:56:28] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 21:56:29] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 21:56:31] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 33 min. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-14 21:56:31] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-14 22:46:48] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: kiro.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 22:46:48] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7596, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 22:46:49] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 22:46:50] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 22:46:52] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. This is normally a free hour, but the load is at its peak right now — try again in a few minutes. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-14 22:46:52] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-14 22:47:03] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'fast'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: kiro.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 22:47:04] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'fast'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7437, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 22:47:05] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'fast'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 22:47:06] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'fast'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 22:47:08] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'fast'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. This is normally a free hour, but the load is at its peak right now — try again in a few minutes. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-14 22:47:08] `SYSTEM`: All providers failed in mode 'fast'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-14 23:27:01] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: kiro.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-14 23:27:02] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7284, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-14 23:27:03] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini API failed with status 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-10-14 23:27:03] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-14 23:27:05] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. This is normally a free hour, but the load is at its peak right now — try again in a few minutes. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-14 23:27:06] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-15 07:09:22] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 21m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:09:34] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 20m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:09:49] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 20m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:10:02] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 20m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:10:12] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 20m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:10:22] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 20m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:28:58] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h 1m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:30:07] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 15h. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:30:32] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 14h 59m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:31:15] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 14h 59m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:32:12] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 14h 58m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-15 07:32:45] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 14h 57m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-16 09:37:17] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-10-16T07:37:17.573Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-16 10:06:05] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-10-16T08:06:05.313Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-16 10:06:05] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-16 10:06:06] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7886, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-16 10:06:07] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-16 10:06:09] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 2 AM IST (20:30 UTC), in about 12h 24m. Best time to use the free plan: 2 AM – 10 AM IST (20:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-16 10:06:09] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** Session: default_session. History count: 48.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-10-17 23:11:02] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 413: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7490, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-17 23:11:03] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-20 18:06:50] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-20T16:06:50.440Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-20 18:06:50] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-20 18:06:54] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-20T16:06:54.274Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-20 18:06:54] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-20 18:06:54] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 5913, Requested 5291. Please try again in 36.034285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-20 18:06:55] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-20 18:07:13] `BOTTLENECK`: High response latency on provider 'opus_proxy' (18.13s)
+- **Details:** Mode: normal, Model: claude-fable-5, History items: 47
+- **💡 Enhancement Recommendation:** Consider adjusting timeout or ranking provider 'opus_proxy' lower if slowdown persists.
+
+### [2026-10-20 18:07:14] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-20T16:07:14.153Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-20 18:07:14] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-20 18:07:15] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3560, Requested 5160. Please try again in 14.742857142s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-20 18:07:15] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-20 18:07:30] `BOTTLENECK`: High response latency on provider 'opus_proxy' (14.91s)
+- **Details:** Mode: normal, Model: claude-fable-5, History items: 46
+- **💡 Enhancement Recommendation:** Consider adjusting timeout or ranking provider 'opus_proxy' lower if slowdown persists.
+
+### [2026-10-20 18:08:50] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-20T16:08:48.894Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-20 18:08:50] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-25 17:47:35] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 2291, Requested 5382. Please try again in 5.768571428s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-10-25 17:47:48] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-10-25 17:47:51] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-25T15:47:50.694Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-25 17:47:51] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-25 17:48:28] `BOTTLENECK`: High response latency on provider 'opus_proxy' (36.42s)
+- **Details:** Mode: normal, Model: claude-opus-4-8, History items: 45
+- **💡 Enhancement Recommendation:** Consider adjusting timeout or ranking provider 'opus_proxy' lower if slowdown persists.
+
+### [2026-10-25 19:56:14] `BOTTLENECK`: High response latency on provider 'groq' (13.54s)
+- **Details:** Mode: normal, Model: groq, History items: 45
+- **💡 Enhancement Recommendation:** Consider adjusting timeout or ranking provider 'groq' lower if slowdown persists.
+
+### [2026-10-28 19:50:01] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (503): <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Suspended</title>
+</head>
+<body>
+This s
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-28 19:50:01] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-28 19:56:50] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (503): <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Suspended</title>
+</head>
+<body>
+This s
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-28 19:56:50] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-29 08:12:40] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-29T06:12:40.089Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-29 08:12:40] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-29 12:16:19] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-29T10:16:19.774Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-29 12:16:19] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-30 09:39:32] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 1 AM IST (19:30 UTC), in about 11h 50m. Best time to use the free plan: 4 AM – 10 AM IST (22:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-30 09:39:32] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-30 09:39:33] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-30T07:39:33.610Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-30 10:04:25] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 1 AM IST (19:30 UTC), in about 11h 26m. Best time to use the free plan: 4 AM – 10 AM IST (22:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-30 10:04:25] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-30 10:04:27] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-30T08:04:26.854Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-30 10:04:54] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 1 AM IST (19:30 UTC), in about 11h 25m. Best time to use the free plan: 4 AM – 10 AM IST (22:30–04:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-30 10:04:54] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-30 10:04:55] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Insufficient balance. Please top up your account or upgrade your plan.",
+  "timestamp": "2026-10-30T08:04:55.356Z",
+  "a
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-10-31 09:27:53] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 1 AM IST (19:30 UTC), in about 12h 2m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-10-31 09:27:53] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-10-31 09:27:56] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-10-31T07:27:56.918Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-02 12:04:26] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 7 PM IST (13:30 UTC), in about 3h 26m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-02 12:04:26] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-02 12:04:27] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-02T10:04:27.606Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-02 18:11:09] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 3 AM IST (21:30 UTC), in about 5h 19m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-02 18:11:09] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-02 18:11:10] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-02T16:11:10.671Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-02 18:42:33] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 3 AM IST (21:30 UTC), in about 4h 47m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-02 18:42:33] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-02 18:42:42] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-02T16:42:41.990Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-03 12:31:43] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 7 PM IST (13:30 UTC), in about 2h 58m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-03 12:31:44] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-03 12:31:45] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-03T10:31:45.603Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-03 12:31:56] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 7 PM IST (13:30 UTC), in about 2h 58m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-03 12:31:56] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-03 12:31:57] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-03T10:31:57.586Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-03 12:32:03] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 7 PM IST (13:30 UTC), in about 2h 58m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-03 12:32:03] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-03 12:32:04] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-03T10:32:04.288Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-03 12:32:11] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 7 PM IST (13:30 UTC), in about 2h 58m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-03 12:32:11] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-03 12:32:12] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-03T10:32:11.928Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-03 12:32:32] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 429: {"error":{"type":"rate_limit_error","message":"The free plan runs during low-load hours only, and this is a busy time. It opens again at 7 PM IST (13:30 UTC), in about 2h 57m. Best time to use the free plan: 3 AM – 8 AM IST (21:30–02:30 UTC). Paid plans work around the clock: https://t.me/AbhiClaude_Bot?start=plans","code":"free_plan_offpeak_only"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-03 12:32:32] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-03 12:32:33] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-03T10:32:33.474Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-06 23:54:48] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-06 23:54:48] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-06 23:54:50] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-06T21:54:50.495Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 00:49:51] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:49:51] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 00:50:11] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:50:11] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 00:50:23] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:50:23] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 00:50:34] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:50:34] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 00:53:02] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:53:02] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 00:53:05] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:53:06] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 00:53:24] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 00:53:24] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+

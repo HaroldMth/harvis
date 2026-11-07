@@ -71,17 +71,20 @@ def _default_engine(history, *, system_prompt, mode, stream_callback, extra_tool
 
 
 class HarnessRunner:
-    def __init__(self, task_id: str = None, mode: str = "normal", engine=None,
-                 system_prompt: str = None, history_prefix: list = None):
+    def __init__(self, task_id: str = None, session_id: str = None, user_id: str = None,
+                 mode: str = "normal", engine=None, system_prompt: str = None,
+                 history_prefix: list = None):
         """engine: callable(history, *, system_prompt, mode, stream_callback, extra_tools) -> dict | None.
         system_prompt: persona/context placed before the harness prompt.
         history_prefix: earlier chat messages ({"role","content"}) the agent should know about."""
         self.task_id = task_id or f"task_{uuid.uuid4().hex[:8]}"
+        self.session_id = session_id or "general"
+        self.user_id = user_id
         self.mode = mode
         self.engine = engine or _default_engine
         self.persona = system_prompt
         self.history_prefix = list(history_prefix or [])
-        self.task_mgr = TaskManager(self.task_id)
+        self.task_mgr = TaskManager(self.task_id, session_id=self.session_id, user_id=self.user_id)
 
     def _result(self, status, success, step, **extra):
         out = {
@@ -125,7 +128,17 @@ class HarnessRunner:
                 except Exception as e:
                     logger.warning(f"Progress callback error on {event.get('type')}: {e}")
 
+        active_dir_info = ""
+        try:
+            from db.store import get_session_info
+            sinfo = get_session_info(self.session_id)
+            if sinfo and sinfo.get("active_dir"):
+                active_dir_info = f"\n[harness] Active Project Directory: {sinfo.get('active_dir')}"
+        except Exception:
+            pass
+
         header = (
+            f"[harness] Session ID: {self.session_id}{active_dir_info}\n"
             f"[harness] Task directory: {self.task_mgr.dir}\n"
             f"[harness] Full untruncated step trace: {self.task_mgr.dir}/trace.jsonl "
             f"(older steps leave your context window but stay there).\n"
@@ -201,7 +214,18 @@ class HarnessRunner:
                   "plan": self.task_mgr.read_plan()})
 
             t0 = time.time()
-            tool_res = await asyncio.to_thread(dispatch, tool_name, tool_args)
+            if tool_name == "shell_exec" and not (tool_args or {}).get("cmd"):
+                tool_res = {
+                    "success": False,
+                    "error": (
+                        "FATAL: shell_exec requires 'cmd'. You passed empty arguments {}. "
+                        "Do NOT retry shell_exec with empty parameters! "
+                        "If you need to run a command, provide 'cmd'. Otherwise, stop calling tools "
+                        "and reply to the user directly in plain text with your answer."
+                    )
+                }
+            else:
+                tool_res = await asyncio.to_thread(dispatch, tool_name, tool_args)
             took = round(time.time() - t0, 2)
             ok = bool(tool_res.get("success", False))
             raw = tool_res.get("output", "") or ""
@@ -220,10 +244,12 @@ class HarnessRunner:
             facts = [f"step {step}" + (f"/{max_steps}" if max_steps else ""),
                      f"{int(time.time() - start)}s elapsed" + (f"/{max_duration_sec}s" if max_duration_sec else ""),
                      f"success={ok}", f"{took}s"]
+            if not ok:
+                facts.append("ACTION FAILED: Inspect the error/stderr above. Do NOT surrender or say you couldn't complete it. Try an alternative tool, search/find commands, or different paths to resolve Harold's goal.")
             if tool_res.get("timed_out"):
                 facts.append("command did not exit on its own and was killed")
-            if settings.REPEAT_NOTICE and repeats >= settings.REPEAT_NOTICE:
-                facts.append(f"this exact action has run {repeats} times in the last {len(recent)} actions")
+            if repeats >= 2:
+                facts.append(f"WARNING: exact identical action repeated {repeats} times — change arguments or answer the user directly")
             note = "[harness: " + ", ".join(facts) + "]"
 
             history.append({"role": "assistant",
@@ -235,7 +261,9 @@ class HarnessRunner:
             await emit({"type": "checked", "step": step, "tool_name": tool_name, "success": ok,
                   "check_passed": ok, "details": note[:200], "output": raw_text, "plan": self.task_mgr.read_plan()})
 
-            if settings.REPEAT_ABORT and repeats >= settings.REPEAT_ABORT:
+            # Abort after 3 identical calls (or REPEAT_ABORT if smaller) so HARVIS doesn't loop forever
+            max_repeats = min(3, settings.REPEAT_ABORT) if settings.REPEAT_ABORT else 3
+            if repeats >= max_repeats:
                 return self._result("stuck", False, step,
-                                    message=f"Same action repeated {repeats} times; stopping.",
+                                    message=f"Action '{tool_name}' failed repeatedly ({repeats} times with identical args); breaking loop.",
                                     notes=self.task_mgr.read_notes())

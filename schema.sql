@@ -28,3 +28,19 @@ CREATE TABLE IF NOT EXISTS provider_status (
     last_fail TEXT,
     quota_reset_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    title TEXT,
+    active_dir TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'active',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    last_active TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_active_session (
+    user_id TEXT PRIMARY KEY,
+    session_id TEXT
+);

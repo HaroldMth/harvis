@@ -12,23 +12,77 @@ from brain.self_improvement import log_issue
 
 logger = logging.getLogger("harvis.router")
 
-from brain.providers import call_omniroute, call_opus_proxy, call_groq, call_mistral, call_gemini
+from brain.providers import call_omniroute, call_opus_proxy, call_groq, call_mistral, call_gemini, call_omegatech_secret
 from brain.modes import get_fallback_chain, get_engine
+from config import GROQ_API_KEY
+import requests
 
-# Primary provider is OmniRoute (running locally on port 20128 with Kiro routes).
-CAPABLE_PROVIDERS = [
-    {"name": "omniroute",  "func": call_omniroute},
-    {"name": "groq",       "func": call_groq},
-    {"name": "gemini",     "func": call_gemini},
-    {"name": "mistral",    "func": call_mistral},
-    {"name": "opus_proxy", "func": call_opus_proxy},
+# Deep reasoning chain (frontier intelligence: Claude Fable 5 / Opus Proxy -> OmniRoute -> Omegatech -> Groq -> Mistral)
+DEEP_PROVIDERS = [
+    {"name": "opus_proxy",       "func": call_opus_proxy},
+    {"name": "omniroute",        "func": call_omniroute},
+    {"name": "omegatech_secret", "func": call_omegatech_secret},
+    {"name": "groq",             "func": call_groq},
+    {"name": "mistral",          "func": call_mistral},
 ]
+
+CAPABLE_PROVIDERS = DEEP_PROVIDERS
 PROVIDERS = CAPABLE_PROVIDERS
 
 PROVIDER_CHAINS = {
-    "normal": CAPABLE_PROVIDERS,
-    "fast":   CAPABLE_PROVIDERS,
+    "normal": DEEP_PROVIDERS,
+    "fast":   DEEP_PROVIDERS,
+    "deep":   DEEP_PROVIDERS,
 }
+
+
+def classify_intent(prompt: str) -> str:
+    """
+    Sub-second classifier using Groq LPU (~0.35s).
+    Determines whether a prompt requires instant FAST execution or DEEP reasoning.
+    """
+    if not prompt or not isinstance(prompt, str) or not GROQ_API_KEY:
+        return "FAST"
+    
+    # Ultra-short prompts or simple greetings don't even need a network call
+    p_lower = prompt.strip().lower()
+    if p_lower in ("hi", "hello", "hey", "sup", "yo", "thanks", "ok", "cool", "retry", "status", "date", "time"):
+        return "FAST"
+
+    # Explicit hints
+    if any(kw in p_lower for kw in ("debug", "refactor", "architect", "race condition", "algorithm", "prove", "calculate", "solve")):
+        return "DEEP"
+
+    try:
+        sys_msg = (
+            "You are an intent triage router. Classify the user prompt into exactly ONE word:\n"
+            "FAST: greetings, quick lookups, system status checks, simple terminal commands, conversational chat.\n"
+            "DEEP: complex programming, debugging, math, multi-step problem solving, architecture design.\n"
+            "Output ONLY the word FAST or DEEP."
+        )
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json={
+                "model": "qwen/qwen3.8-27b",
+                "messages": [
+                    {"role": "system", "content": sys_msg},
+                    {"role": "user", "content": prompt[:300]}
+                ],
+                "max_tokens": 5,
+                "temperature": 0.0
+            },
+            timeout=3
+        )
+        if r.status_code == 200:
+            decision = r.json()["choices"][0]["message"]["content"].strip().upper()
+            if "DEEP" in decision:
+                return "DEEP"
+    except Exception as e:
+        logger.debug(f"Classifier error ({e}), defaulting to FAST")
+    
+    return "FAST"
+
 
 
 GENERIC_GREETINGS_PATTERN = re.compile(
@@ -143,15 +197,10 @@ def complete(history, system_prompt=None, mode="normal", stream_callback=None,
     extra_tools (e.g. the harness `finish` tool) are only offered to OmniRoute;
     other providers can still end a task with a plain text reply.
     """
-    pool = omniroute_options(mode).get("model", "auto/smart:pro")
-    system_prompt = (system_prompt or "") + (
-        f"\n\n[IDENTITY] You are HARVIS on OmniRoute pool `{pool}`. "
-        "Only capable models are in this pool \u2014 not flash, lite, mini, nano, or haiku-class. "
-        "If asked which model you are, answer: HARVIS, routed through that OmniRoute pool. "
-        "You will not see a single fixed lab model name unless the gateway reports one."
-    )
+    # All requests route through deep frontier reasoning chain
+    effective_chain = PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS)
 
-    for provider in PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS):
+    for provider in effective_chain:
         name, func = provider["name"], provider["func"]
         try:
             if name == "omniroute":
@@ -172,10 +221,14 @@ def complete(history, system_prompt=None, mode="normal", stream_callback=None,
                 if last_err:
                     raise last_err
             else:
+                call_history = history
+                if name == "groq" and len(history) > 10:
+                    call_history = history[-10:]
+
                 try:
-                    res = func(history, system_prompt=system_prompt, stream_callback=stream_callback)
+                    res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback)
                 except TypeError:
-                    res = func(history, system_prompt=system_prompt)
+                    res = func(call_history, system_prompt=system_prompt)
                 res["provider"] = name
                 res["model"] = res.get("routed_model") or name
                 update_provider_status(name, True)
@@ -218,23 +271,6 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
         if images and mode != "vision":
             logger.info(f"Images detected in prompt, auto-switching to vision mode")
             mode = "vision"
-
-        if mode == "think":
-            reasoning_prompt = (
-                "\n\n[MODE: DEEP THINKING & HIGH-PRECISION REASONING]\n"
-                "You are operating in Deep Thinking / Reasoning Mode. For this prompt:\n"
-                "1. Wrap your step-by-step internal reasoning process inside <think> ... </think> tags.\n"
-                "2. AFTER the </think> tag, present your complete, detailed, and polished technical answer to Harold.\n"
-            )
-            system_prompt = (system_prompt or "") + reasoning_prompt
-
-        pool = omniroute_options(mode).get("model", "auto/smart:pro")
-        system_prompt = (system_prompt or "") + (
-            f"\n\n[IDENTITY] You are HARVIS on OmniRoute pool `{pool}`. "
-            "Only capable models are in this pool — not flash, lite, mini, nano, or haiku-class. "
-            "If asked which model you are, answer: HARVIS, routed through that OmniRoute pool. "
-            "You will not see a single fixed lab model name unless the gateway reports one."
-        )
 
         # 1. Save incoming message to SQLite database for persistent memory
         if prompt:
@@ -284,7 +320,7 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
         elif not history and prompt:
             history = [{"role": role, "content": prompt}]
 
-        # 3. Pick provider chain based on mode
+        # 3. Pick provider chain based on mode (all point to deep frontier reasoning)
         provider_chain = PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS)
 
         start_time = time.time()
@@ -327,10 +363,14 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
                         raise last_omni_err
                 else:
                     extra = {}
+                    call_history = history
+                    if name == "groq" and len(history) > 10:
+                        call_history = history[-10:]
+
                     try:
-                        res = func(history, system_prompt=system_prompt, stream_callback=stream_callback, **extra)
+                        res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback, **extra)
                     except TypeError:
-                        res = func(history, system_prompt=system_prompt, **extra)
+                        res = func(call_history, system_prompt=system_prompt, **extra)
 
                     p_elapsed = round(time.time() - p_start, 2)
                     update_provider_status(name, True)

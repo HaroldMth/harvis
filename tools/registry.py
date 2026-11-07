@@ -362,6 +362,37 @@ TOOLS_SCHEMA = [
                 }
             }
         }
+    },
+    {
+        "name": "session_manager",
+        "description": "Manage HARVIS conversational workspaces and task sessions. Use this to create a dedicated session for a new project/app, list active sessions, switch between sessions, or update the session title, active project directory, and notes.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["create", "list", "switch", "update", "info"],
+                    "description": "Action: 'create' (starts new session), 'list' (shows all user sessions), 'switch' (switches active session), 'update' (renames or updates active_dir/notes), 'info' (gets details)"
+                },
+                "session_id": {
+                    "type": "string",
+                    "description": "4-character session ID (e.g. 'b7x2', 'general') when switching, updating, or getting info"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Short descriptive 3-5 word title for the session (e.g. 'YouTube Downloader APK')"
+                },
+                "active_dir": {
+                    "type": "string",
+                    "description": "Root project directory path associated with this session (e.g. '/home/harold/youtube_downloader_app')"
+                },
+                "notes": {
+                    "type": "string",
+                    "description": "Brief summary of progress or key technical facts to remember for this session"
+                }
+            },
+            "required": ["action"]
+        }
     }
 ]
 
@@ -525,6 +556,35 @@ def _normalize_tool_args(name, args):
     return args
 
 
+def session_manager(action: str = "list", session_id: str = None, title: str = None, active_dir: str = None, notes: str = None, user_id: str = "telegram_default", **kw) -> dict:
+    """Manages conversational workspaces and coding sessions for HARVIS."""
+    from db.store import create_session, get_active_session, set_active_session, list_user_sessions, get_session_info, update_session
+    
+    act = (action or "list").lower().strip()
+    if act == "create":
+        sid = create_session(user_id=user_id, title=title, active_dir=active_dir)
+        return {"success": True, "output": f"Created and switched to session `{sid}`: '{title or sid}'."}
+    elif act == "list":
+        sessions = list_user_sessions(user_id)
+        return {"success": True, "output": json.dumps(sessions, indent=2)}
+    elif act == "switch":
+        if not session_id:
+            return {"success": False, "error": "session_id required to switch."}
+        set_active_session(user_id, session_id)
+        info = get_session_info(session_id)
+        return {"success": True, "output": f"Switched to session `{session_id}`: '{info.get('title') if info else session_id}'."}
+    elif act in ("update", "rename"):
+        target_sid = session_id or get_active_session(user_id)
+        update_session(target_sid, title=title, active_dir=active_dir, notes=notes)
+        return {"success": True, "output": f"Updated session `{target_sid}`."}
+    elif act == "info":
+        target_sid = session_id or get_active_session(user_id)
+        info = get_session_info(target_sid)
+        return {"success": True, "output": json.dumps(info, indent=2)}
+    else:
+        return {"success": False, "error": f"Unknown action '{act}'. Valid actions: create, list, switch, update, info."}
+
+
 TOOL_DISPATCH = {
     "close_app": close_app,
     "open_app": open_app,
@@ -544,6 +604,7 @@ TOOL_DISPATCH = {
     "timer": timer,
     "media_control": media_control,
     "screenshot": screenshot,
+    "session_manager": session_manager,
 }
 
 
