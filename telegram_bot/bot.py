@@ -39,6 +39,7 @@ from brain.modes import parse_slash, switch_message, status_message, DEFAULT_MOD
 from brain.harness import HarnessRunner
 from brain.paths import HARVIS_HOME, ensure_dirs
 from tools.registry import dispatch
+from tools.system import abort_active_processes
 from subagents.runner import spawn_subagent
 from db.store import (
     clear_session, get_history, save_message, set_harvis_busy,
@@ -455,9 +456,10 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dropped = len(QUEUES.pop(user.id, []))
     cancel_evt = ACTIVE_CANCELS.get(user.id)
     extra = f" ({dropped} queued message{'s' if dropped != 1 else ''} dropped)" if dropped else ""
+    abort_active_processes()
     if cancel_evt and not cancel_evt.is_set():
         cancel_evt.set()
-        await send_html(update.message, f"🛑 <b>Stop signal sent</b>{extra}")
+        await send_html(update.message, f"🛑 <b>Stop signal sent. Active commands terminated.</b>{extra}")
     else:
         await send_html(update.message, f"ℹ️ No active generation is currently running.{extra}")
 
@@ -1127,7 +1129,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cancel_evt = ACTIVE_CANCELS.get(target_id)
         if cancel_evt and not cancel_evt.is_set():
             cancel_evt.set()
-            await query.answer("🛑 Stopping generation...", show_alert=True)
+            abort_active_processes()
+            await query.answer("🛑 Stopping generation & killing active commands...", show_alert=True)
         else:
             await query.answer("Generation already stopped.", show_alert=False)
         return

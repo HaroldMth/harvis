@@ -7,8 +7,28 @@ import re
 import shlex
 import signal
 import time
+import threading
 
 from tools.session import graphical_env
+
+# Tracks running foreground subprocesses so they can be aborted immediately on stop
+_ACTIVE_PROCS_LOCK = threading.Lock()
+_ACTIVE_PROCS = set()
+
+
+def abort_active_processes():
+    """Immediately kill all currently active foreground shell subprocesses."""
+    with _ACTIVE_PROCS_LOCK:
+        for proc in list(_ACTIVE_PROCS):
+            try:
+                pgid = os.getpgid(proc.pid)
+                os.killpg(pgid, signal.SIGKILL)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        _ACTIVE_PROCS.clear()
 
 try:
     _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -186,6 +206,8 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
             start_new_session=True,    # Create a new session so killing pgid cleans all children
             executable="/bin/bash",
         )
+        with _ACTIVE_PROCS_LOCK:
+            _ACTIVE_PROCS.add(proc)
         try:
             stdout, stderr = proc.communicate(timeout=wait_time)
             if proc.returncode == 0:
@@ -221,6 +243,9 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
                     "output": f"[Command did not exit; killed after {wait_time}s. Output so far]:\n{captured}"
                 }
             return {"success": False, "error": f"Command '{cmd}' timed out after {wait_time}s with no output."}
+        finally:
+            with _ACTIVE_PROCS_LOCK:
+                _ACTIVE_PROCS.discard(proc)
     except Exception as e:
         return {"success": False, "error": str(e)}
 
