@@ -568,6 +568,9 @@ def session_manager(action: str = "list", session_id: str = None, title: str = N
     act = (action or "list").lower().strip()
     if act == "create":
         sid = create_session(user_id=user_id, title=title, active_dir=active_dir)
+        if active_dir and title:
+            from brain.paths import register_project
+            register_project(title.lower().replace(" ", "_"), active_dir, description=title)
         return {"success": True, "output": f"Created and switched to session `{sid}`: '{title or sid}'."}
     elif act == "list":
         sessions = list_user_sessions(user_id)
@@ -581,6 +584,10 @@ def session_manager(action: str = "list", session_id: str = None, title: str = N
     elif act in ("update", "rename"):
         target_sid = session_id or get_active_session(user_id)
         update_session(target_sid, title=title, active_dir=active_dir, notes=notes)
+        if active_dir:
+            from brain.paths import register_project
+            proj_name = (title or target_sid).lower().replace(" ", "_")
+            register_project(proj_name, active_dir, description=title or "")
         return {"success": True, "output": f"Updated session `{target_sid}`."}
     elif act == "info":
         target_sid = session_id or get_active_session(user_id)

@@ -15,6 +15,38 @@ HARVIS_PROJECTS = HARVIS_HOME / "projects"
 HARVIS_DOWNLOADS = HARVIS_HOME / "downloads"
 HARVIS_TMP = HARVIS_HOME / "tmp"
 
+# Projects registry
+PROJECTS_REGISTRY = HARVIS_DIR / "projects.json"
+
+
+def get_projects_registry() -> dict:
+    """Return projects dict mapping project keys to their metadata."""
+    if not PROJECTS_REGISTRY.exists():
+        return {}
+    try:
+        import json
+        with open(PROJECTS_REGISTRY, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def register_project(name: str, path: str, ptype: str = "general", description: str = "") -> bool:
+    """Register or update a known project path."""
+    import json
+    data = get_projects_registry()
+    data[name] = {
+        "path": str(Path(path).expanduser().resolve()),
+        "type": ptype,
+        "description": description or f"{name} project"
+    }
+    try:
+        with open(PROJECTS_REGISTRY, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception:
+        return False
+
 # State & persistence
 HARVIS_SESSIONS = HARVIS_DIR / "sessions"
 DB_PATH = HARVIS_SESSIONS / "harvis.db"

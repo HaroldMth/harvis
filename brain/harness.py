@@ -153,8 +153,12 @@ async def _execute_batch(work, task_mgr, default_cwd=None):
                 a["cwd"] = default_cwd
         elif name in ("grep", "glob_files"):
             a["path"] = rel(a["path"]) if a.get("path") else default_cwd
-        elif name in ("read_file", "edit_file") and a.get("path"):
+        elif name in ("read_file", "edit_file", "list_dir") and a.get("path"):
             a["path"] = rel(a["path"])
+        elif name == "file_op" and a.get("path"):
+            a["path"] = rel(a["path"])
+            if a.get("destination"):
+                a["destination"] = rel(a["destination"])
         return a
 
     async def one(name, args):
@@ -504,6 +508,28 @@ class HarnessRunner:
                     raw = tool_res.get("output", "") or ""
                     err = tool_res.get("error", "") or ""
                     raw_text = raw if not err else f"{raw}\n[stderr/error]: {err}".strip()
+
+                    # Dynamically track directory changes from session_manager or cd-like executions
+                    if ok:
+                        if tool_name == "session_manager" and isinstance(tool_args, dict) and tool_args.get("active_dir"):
+                            new_ad = tool_args["active_dir"]
+                            if os.path.isdir(new_ad):
+                                snap_dir = new_ad
+                        elif tool_name == "shell_exec" and isinstance(tool_args, dict):
+                            cmd_str = (tool_args.get("cmd") or "").strip()
+                            cd_m = re.match(r"^cd\s+([^\s;&|]+)", cmd_str)
+                            if cd_m:
+                                target_p = os.path.expanduser(cd_m.group(1))
+                                if not os.path.isabs(target_p) and snap_dir:
+                                    target_p = os.path.join(snap_dir, target_p)
+                                target_p = os.path.abspath(target_p)
+                                if os.path.isdir(target_p):
+                                    snap_dir = target_p
+                                    try:
+                                        from db.store import update_session
+                                        update_session(self.session_id, active_dir=snap_dir)
+                                    except Exception:
+                                        pass
 
                     if ok and _is_verify(tool_name, tool_args):
                         verify_seq = seq
