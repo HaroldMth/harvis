@@ -3,9 +3,25 @@ import os
 import json
 import time
 import threading
+import sys
 
-DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "harvis.db"))
+# Resolve paths from brain/paths.py (single source of truth for ~/.harvis layout)
+_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
+try:
+    from brain.paths import DB_PATH as _DB_PATH, BUSY_FILE as _BUSY_FILE, ensure_dirs
+    ensure_dirs()
+    DB_PATH = str(_DB_PATH)
+    BUSY_FILE = str(_BUSY_FILE)
+except Exception:
+    # Fallback to legacy in-repo paths during migration or test isolation
+    DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "harvis.db"))
+    BUSY_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "busy_state.json"))
+
 SCHEMA_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "schema.sql"))
+
 
 def get_connection():
     # WAL + a long busy timeout: the bot, harness threads and heartbeat all write to this file,
@@ -18,6 +34,7 @@ def get_connection():
         pass
     return conn
 
+
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
@@ -26,8 +43,6 @@ def init_db():
     cursor.executescript(schema)
     conn.commit()
     conn.close()
-
-BUSY_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "busy_state.json"))
 
 
 _BUSY_LOCK = threading.Lock()

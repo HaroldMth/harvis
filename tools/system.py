@@ -10,6 +10,15 @@ import time
 
 from tools.session import graphical_env
 
+try:
+    _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _repo_root not in sys.path:
+        sys.path.insert(0, _repo_root)
+    from brain.paths import HARVIS_HOME as _HARVIS_HOME
+    _HARVIS_HOME_STR = str(_HARVIS_HOME)
+except Exception:
+    _HARVIS_HOME_STR = os.path.expanduser("~")
+
 # Callback for UI confirmation: function(message: str) -> bool
 confirmation_callback = None
 
@@ -93,7 +102,7 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
     cmd_processed = cmd.strip()
 
     HARVIS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    run_dir = HARVIS_ROOT
+    run_dir = _HARVIS_HOME_STR  # default cwd is HARVIS's home, not the repo root
     workdir = cwd or kwargs.get("workdir") or kwargs.get("dir")
     if workdir:
         workdir = os.path.abspath(os.path.expanduser(str(workdir)))

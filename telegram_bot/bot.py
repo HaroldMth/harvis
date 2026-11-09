@@ -15,6 +15,7 @@ import re
 import base64
 import io
 import uuid
+from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -36,6 +37,7 @@ if PROJECT_ROOT not in sys.path:
 from brain.router import ask, complete, detect_images_in_prompt, prepare_vision_request
 from brain.modes import parse_slash, switch_message, status_message, DEFAULT_MODE, get_engine
 from brain.harness import HarnessRunner
+from brain.paths import HARVIS_HOME, ensure_dirs
 from tools.registry import dispatch
 from subagents.runner import spawn_subagent
 from db.store import (
@@ -44,6 +46,9 @@ from db.store import (
     list_user_sessions, get_session_info, update_session, get_recent_sessions_summary
 )
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS
+
+ensure_dirs()
+_HARVIS_HOME = str(HARVIS_HOME)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -411,7 +416,7 @@ import dataclasses
 
 @dataclasses.dataclass
 class ShellSession:
-    cwd: str = "/home/harold"
+    cwd: str = dataclasses.field(default_factory=lambda: _HARVIS_HOME)
     history: list = dataclasses.field(default_factory=list)   # [{cmd, exit_code, took, snippet}]
     bubble_msg_ids: list = dataclasses.field(default_factory=list)   # Telegram msg objects to delete on exit
     user_msg_ids: list = dataclasses.field(default_factory=list)     # User messages to delete on exit
@@ -651,7 +656,7 @@ async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Activate shell mode
     if lower_args in ("on", ""):
         active_sid = get_active_session(user.id)
-        default_cwd = "/home/harold"
+        default_cwd = _HARVIS_HOME
         if active_sid and active_sid != "general":
             info = get_session_info(active_sid)
             if info and info.get("active_dir") and os.path.isdir(info["active_dir"]):
@@ -679,7 +684,7 @@ async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # One-shot mode: /shell <cmd> without entering shell mode
     cmd = args_text
     active_sid = get_active_session(user.id)
-    cwd = "/home/harold"
+    cwd = _HARVIS_HOME
     if active_sid and active_sid != "general":
         info = get_session_info(active_sid)
         if info and info.get("active_dir") and os.path.isdir(info["active_dir"]):
@@ -726,9 +731,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cd_match:
             raw_dest = (cd_match.group(1) or "").strip()
             if not raw_dest or raw_dest == "~":
-                new_dir = "/home/harold"
+                new_dir = str(Path.home())
             else:
-                dest = raw_dest.replace("~", "/home/harold")
+                dest = raw_dest.replace("~", str(Path.home()))
                 new_dir = os.path.abspath(os.path.join(sess.cwd, dest))
             if os.path.isdir(new_dir):
                 sess.cwd = new_dir

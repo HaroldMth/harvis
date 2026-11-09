@@ -18,6 +18,7 @@ logger = logging.getLogger("harvis.main")
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 from db.store import init_db, save_message
+from brain.paths import ensure_dirs
 from audio.vad import VoiceDetector
 from audio.stt import speech_to_text
 from tools.system import set_confirmation_callback
@@ -278,6 +279,7 @@ def main():
         acquire_puter_token()
     
     logger.info("Initializing SQLite Database...")
+    ensure_dirs()
     init_db()
     
     logger.info("Launching HARVIS GUI...")
