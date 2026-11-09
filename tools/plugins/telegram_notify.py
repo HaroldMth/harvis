@@ -86,8 +86,12 @@ def handler(args):
     base_url = f"https://api.telegram.org/bot{token}"
     success_count = 0
 
+    from db.store import save_message, get_active_session
+
     for cid in chat_ids:
         try:
+            active_sid = get_active_session(cid)
+            target_sid = f"telegram_{cid}_{active_sid}" if (active_sid and active_sid != "general") else f"telegram_{cid}"
             if not file_path:
                 # Text-only message
                 url = f"{base_url}/sendMessage"
@@ -98,7 +102,7 @@ def handler(args):
                     r = requests.post(url, json=payload, timeout=10)
                 if r.status_code == 200:
                     success_count += 1
-                    save_message(f"telegram_{cid}", "assistant", text)
+                    save_message(target_sid, "assistant", text)
             else:
                 mtype = _detect_media_type(file_path, media_type)
                 endpoint_map = {
@@ -132,7 +136,7 @@ def handler(args):
 
                 if r.status_code == 200:
                     success_count += 1
-                    save_message(f"telegram_{cid}", "assistant", f"[Sent {mtype}: {os.path.basename(file_path)}] {text}".strip())
+                    save_message(target_sid, "assistant", f"[Sent {mtype}: {os.path.basename(file_path)}] {text}".strip())
         except Exception as e:
             pass
 

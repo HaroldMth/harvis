@@ -590,6 +590,16 @@ class HarnessRunner:
                 summary = str(tool_args.get("summary", "")).strip()
                 declared = tool_args.get("success")
 
+                # If the agent called finish without a summary, generate an autonomous debrief turn
+                if not summary and (work or edit_seq > 0 or verify_seq > 0):
+                    history.append({"role": "assistant", "content": json.dumps(
+                        {"type": "tool_call", "tool_name": "finish", "tool_args": tool_args})})
+                    history.append({
+                        "role": "tool",
+                        "content": "[harness: finish requires a descriptive summary for Harold. Please reply in plain text describing exactly what you completed and verified.]"
+                    })
+                    continue
+
                 # One-time check: claiming success after editing without a passing check since.
                 # The agent still decides: calling finish again goes through.
                 if declared is True and edit_seq > verify_seq and not finish_checked:

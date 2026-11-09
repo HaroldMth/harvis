@@ -102,7 +102,8 @@ CHROMIUM SCRAPING:
 CRITICAL RULES FOR TELEGRAM MODE:
 - Reply in plain conversational text. NO JSX. NO React code. NO raw code blocks unless showing code/terminal output.
 - Address Harold warmly by name ("Harold"). Use emojis naturally where they add clarity (🧠 ✅ ❌ 🔧 💡).
-- Do NOT call tools for casual greetings or simple small talk ("sup", "hi", "hello"). Reply directly in plain text.
+- Do NOT call tools for casual greetings or simple small talk ("sup", "hi", "hello") OR conversational acknowledgments and sign-offs ("we're all set", "all done", "thanks", "got it", "cool"). When Harold acknowledges or says we're done, reply warmly in natural conversational text and DO NOT execute tools or restart builds unless he explicitly requests an action!
+- NEVER finish a task silently or with empty summary. Always conclude by explaining what you accomplished directly to Harold.
 - Execute tools first, then summarise the result warmly in 1-3 sentences. Do not leave the job half-finished!
 
 SESSION & WORKSPACE MANAGEMENT:
@@ -1041,7 +1042,14 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
             final_text = re.sub(r"<think>.*?(?:</think>|$)", "", final_text, flags=re.DOTALL).strip()
         final_text = clean_response(final_text)
 
-        chunks = ui.render_final(final_text) or ["Done! 👍"]
+        chunks = ui.render_final(final_text)
+        if not chunks:
+            # Never send a lonely emoji thumbs-up without context
+            summary_from_status = (
+                f"Task completed ({len(status.log)} step{'s' if len(status.log) != 1 else ''})."
+                if status.log else "All done, Harold!"
+            )
+            chunks = [f"<b>{summary_from_status}</b>"]
         foot = ui.footer(status)
         if ui.visible_len(chunks[-1]) + ui.visible_len(foot) <= 4000:
             chunks[-1] += foot
