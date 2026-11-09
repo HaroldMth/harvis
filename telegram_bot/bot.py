@@ -26,6 +26,7 @@ from telegram.ext import (
     filters,
 )
 import telegram_bot.tg_ui as ui
+import telegram_bot.tg_io as tio
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -107,21 +108,25 @@ SESSION & WORKSPACE MANAGEMENT:
 - You can manage sessions autonomously using `session_manager`."""
 
 # ─── Helper: strip JSX artifacts if they slip through ────────────────────────
-_JSX_BLOCK = re.compile(r"```(?:jsx|tsx|javascript|js)\n.*?```", re.DOTALL)
-_CODE_BLOCK_LANG = re.compile(r"```\w+\n")
+# Only fences that are clearly desktop-UI React components are removed. Ordinary JavaScript,
+# TypeScript or JSON the user asked for must be delivered untouched.
+_JSX_BLOCK = re.compile(r"```(?:jsx|tsx|javascript|js|typescript|ts)\n(.*?)```", re.DOTALL)
+_REACT_HINT = re.compile(r"export\s+default|from\s+['\"]react['\"]|\buseState\b|\buseEffect\b|className=|ReactDOM")
 _GENERIC_GREETING = re.compile(
-    r"^(Harold,\s*I['']?m\s*your\s*local\s*assistant\s*HARVIS\.?\s*How\s*can\s*I\s*help\s*you\s*today\??\s*|Hello\s*Harold!??\s*|Hi\s*Harold!??\s*)",
+    r"^(Harold,\s*I['\u2019]?m\s*your\s*local\s*assistant\s*HARVIS\.?\s*How\s*can\s*I\s*help\s*you\s*today\??\s*|Hello\s*Harold!??\s*|Hi\s*Harold!??\s*)",
     re.IGNORECASE,
 )
 
 
+_TOOL_TAGS = re.compile(r"<(?:tool_call|tool|invoke)[^>]*>.*?</(?:tool_call|tool|invoke)>", re.DOTALL | re.IGNORECASE)
+
+
 def clean_response(text: str) -> str:
-    """Cleans Telegram responses: removes JSX blobs and generic greetings."""
+    """Cleans Telegram responses: removes React/JSX UI blobs, tool tags, and generic greetings."""
     if not text:
         return ""
-    # Remove full JSX/JS code blocks (desktop UI artifacts)
-    text = _JSX_BLOCK.sub("", text)
-    # Strip leading greeting blurb
+    text = _JSX_BLOCK.sub(lambda m: "" if _REACT_HINT.search(m.group(1)) else m.group(0), text)
+    text = _TOOL_TAGS.sub("", text)
     text = _GENERIC_GREETING.sub("", text.strip()).strip()
     return text
 
@@ -143,8 +148,9 @@ def safe_reply_text(text: str, limit: int = 4096) -> list[str]:
 # ─── Security ────────────────────────────────────────────────────────────────
 
 def is_user_allowed(user_id: int, username: str = "") -> bool:
+    # Fail closed: with no allowlist configured nobody gets in. This bot can run shell commands.
     if not TELEGRAM_ALLOWED_USERS:
-        return True
+        return False
     if user_id in TELEGRAM_ALLOWED_USERS:
         return True
     if username and username.lower() in [str(u).lower().lstrip("@") for u in TELEGRAM_ALLOWED_USERS]:
@@ -176,7 +182,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<b>Commands</b>\n"
         "• <code>/fast</code> run a quick query on the fast engine\n"
         "• <code>/mode</code> show the active engine\n"
-        "• <code>/stop</code> abort the current run\n"
+        "• <code>/stop</code> abort the current run and clear the queue (new messages while I work are queued, not cancelling)\n"
         "• <code>/reset</code> clear active session memory\n"
         "• <code>/health</code> system health audit\n\n"
         "Just type anything to command HARVIS."
@@ -399,6 +405,20 @@ ACTIVE_CANCELS: dict[int, threading.Event] = {}
 USER_MODES: dict[int, str] = {}
 USER_MODELS: dict[int, str] = {}
 
+# ─── Shell Mode State ─────────────────────────────────────────────────────────
+import dataclasses
+
+@dataclasses.dataclass
+class ShellSession:
+    cwd: str = "/home/harold"
+    history: list = dataclasses.field(default_factory=list)   # [{cmd, exit_code, took, snippet}]
+    bubble_msg_ids: list = dataclasses.field(default_factory=list)   # Telegram msg objects to delete on exit
+    user_msg_ids: list = dataclasses.field(default_factory=list)     # User messages to delete on exit
+    started_at: float = dataclasses.field(default_factory=time.monotonic)
+
+SHELL_SESSIONS: dict[int, ShellSession] = {}  # user_id -> ShellSession
+
+
 MODE_CONFIG = {
     "normal": {
         "emoji":  "🛡️",
@@ -421,12 +441,14 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_user_allowed(user.id, user.username):
         return
 
+    dropped = len(QUEUES.pop(user.id, []))
     cancel_evt = ACTIVE_CANCELS.get(user.id)
+    extra = f" ({dropped} queued message{'s' if dropped != 1 else ''} dropped)" if dropped else ""
     if cancel_evt and not cancel_evt.is_set():
         cancel_evt.set()
-        await send_html(update.message, "🛑 <b>Stop signal sent</b>")
+        await send_html(update.message, f"🛑 <b>Stop signal sent</b>{extra}")
     else:
-        await send_html(update.message, "ℹ️ No active generation is currently running.")
+        await send_html(update.message, f"ℹ️ No active generation is currently running.{extra}")
 
 
 async def mode_command(update: Update, context: ContextTypes.DEFAULT_TYPE, mode: str):
@@ -446,10 +468,170 @@ async def mode_command(update: Update, context: ContextTypes.DEFAULT_TYPE, mode:
         await send_html(update.message, ui.md_to_html(switch_message(target_mode), legacy=True))
 
 
+
+
 async def fast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Run a fast one-shot query or switch to fast sprint engine."""
     await mode_command(update, context, "fast")
 
+
+# ─── Shell Mode ───────────────────────────────────────────────────────────────
+
+async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
+    """
+    Run a shell command with live Telegram output streaming.
+    Returns (exit_code, full_output, elapsed_secs, bubble_msg).
+    Throttles Telegram edits to once per 1.5s to stay inside flood limits.
+    Strips ANSI escape codes before display.
+    """
+    t0 = time.monotonic()
+    output_buf = []
+    bubble_msg = await send_html(
+        update.message,
+        ui.render_command_bubble(cmd, 0.0, "", is_running=True, cwd=cwd)
+    )
+    last_edit = [time.monotonic()]
+
+    async def flush():
+        if bubble_msg:
+            joined = ui.clean_ansi("".join(output_buf))
+            elapsed = time.monotonic() - t0
+            await _safe_edit(
+                bubble_msg,
+                ui.render_command_bubble(cmd, elapsed, joined, is_running=True, cwd=cwd)
+            )
+        last_edit[0] = time.monotonic()
+
+    try:
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            stdin=asyncio.subprocess.DEVNULL,
+            cwd=cwd,
+            executable="/bin/bash",
+        )
+
+        async for raw_line in proc.stdout:
+            line = raw_line.decode("utf-8", errors="replace")
+            output_buf.append(line)
+            if time.monotonic() - last_edit[0] >= 1.5:
+                await flush()
+
+        await proc.wait()
+        exit_code = proc.returncode
+    except Exception as e:
+        output_buf.append(f"\n[Error: {e}]")
+        exit_code = -1
+
+    elapsed = time.monotonic() - t0
+    full_output = ui.clean_ansi("".join(output_buf)).strip()
+
+    # Seal the bubble with final status
+    if bubble_msg:
+        await _safe_edit(
+            bubble_msg,
+            ui.render_command_bubble(cmd, elapsed, full_output, is_running=False, exit_code=exit_code, cwd=cwd)
+        )
+
+    return exit_code, full_output, elapsed, bubble_msg
+
+
+async def exit_shell_mode(user_id: int, update: Update):
+    """Clean up shell mode: delete user messages and intermediate bubbles, post summary card."""
+    sess = SHELL_SESSIONS.pop(user_id, None)
+    if not sess:
+        return
+
+    duration = time.monotonic() - sess.started_at
+
+    # Build the final directory (track last cd)
+    final_cwd = sess.cwd
+
+    # 1. Delete all bubble messages (command output bubbles)
+    for msg in sess.bubble_msg_ids:
+        try:
+            await msg.delete()
+        except Exception:
+            pass
+
+    # 2. Delete user's raw command messages
+    for msg_id in sess.user_msg_ids:
+        try:
+            await update.effective_chat.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=msg_id
+            )
+        except Exception:
+            pass
+
+    # 3. Post single consolidated summary card
+    summary = ui.render_shell_summary(final_cwd, sess.history, duration)
+    await send_html(update.message, summary)
+
+
+async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /shell [on|off|<cmd>]
+    /sh    [on|off|<cmd>]
+
+    - /shell          → toggle shell mode on
+    - /shell on       → activate shell mode
+    - /shell off      → exit shell mode and post summary
+    - /shell <cmd>    → one-shot command (no mode change)
+    """
+    user = update.effective_user
+    if not is_user_allowed(user.id, user.username):
+        await update.message.reply_text("🚫 Access Denied.")
+        return
+
+    args_text = " ".join(context.args).strip() if context.args else ""
+    lower_args = args_text.lower()
+
+    # Exit shell mode
+    if lower_args in ("off", "exit", "quit", "stop", "") and user.id in SHELL_SESSIONS:
+        # Delete /shell off message itself
+        try:
+            await update.message.delete()
+        except Exception:
+            pass
+        await exit_shell_mode(user.id, update)
+        return
+
+    # Activate shell mode (no command inline)
+    if lower_args in ("on", ""):
+        active_sid = get_active_session(user.id)
+        default_cwd = "/home/harold"
+        if active_sid and active_sid != "general":
+            info = get_session_info(active_sid)
+            if info and info.get("active_dir") and os.path.isdir(info["active_dir"]):
+                default_cwd = info["active_dir"]
+
+        SHELL_SESSIONS[user.id] = ShellSession(cwd=default_cwd)
+        try:
+            await update.message.delete()
+        except Exception:
+            pass
+        await send_html(
+            update.message,
+            f"🖥 <b>Shell Mode ON</b>\n"
+            f"📁 <code>{ui.esc(default_cwd)}</code>\n\n"
+            f"<i>Every message is now a bash command.\n"
+            f"Type <code>/shell off</code> or <code>/exit</code> to return to HARVIS.</i>"
+        )
+        return
+
+    # One-shot mode: /shell <cmd> without entering shell mode
+    cmd = args_text
+    active_sid = get_active_session(user.id)
+    cwd = "/home/harold"
+    if active_sid and active_sid != "general":
+        info = get_session_info(active_sid)
+        if info and info.get("active_dir") and os.path.isdir(info["active_dir"]):
+            cwd = info["active_dir"]
+
+    exit_code, full_output, elapsed, bubble_msg = await shell_exec_live(cmd, cwd, update)
+    # one-shot: nothing to consolidate, bubble stays sealed
 
 async def mode_status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show current active mode."""
@@ -473,13 +655,55 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not prompt_text:
         return
 
-    # Auto-stop any prior active generation so the new human request takes priority
-    prior_cancel = ACTIVE_CANCELS.get(user.id)
-    if prior_cancel and not prior_cancel.is_set():
-        logger.info(f"New incoming message from user {user.id} — aborting prior running task.")
-        prior_cancel.set()
-        await asyncio.sleep(0.15)  # brief yield to let prior loop exit cleanly
+    # ── Shell Mode: route every message as a bash command ──────────────────────
+    if user.id in SHELL_SESSIONS:
+        sess = SHELL_SESSIONS[user.id]
+        cmd = prompt_text.strip()
 
+        # /exit or /shell off inside shell mode triggers graceful exit
+        if cmd.lower() in ("/exit", "/shell off", "/shell stop", "/shell quit"):
+            try:
+                await update.message.delete()
+            except Exception:
+                pass
+            await exit_shell_mode(user.id, update)
+            return
+
+        # Track user message ID for cleanup later
+        sess.user_msg_ids.append(update.message.message_id)
+
+        # Handle `cd <path>` as a built-in to persist cwd
+        cd_match = re.match(r"^\s*cd\s+(.+)$", cmd)
+        if cd_match:
+            new_dir = cd_match.group(1).strip().replace("~", "/home/harold")
+            new_dir = os.path.abspath(os.path.join(sess.cwd, new_dir))
+            if os.path.isdir(new_dir):
+                sess.cwd = new_dir
+                sess.history.append({"cmd": cmd, "exit_code": 0, "took": 0.0, "snippet": f"→ {new_dir}"})
+                # Quick confirmation bubble (auto-deletes after 2s via edit trick)
+                cd_bubble = await send_html(
+                    update.message,
+                    ui.render_command_bubble(cmd, 0.0, f"→ {new_dir}", is_running=False, exit_code=0, cwd=new_dir)
+                )
+                sess.bubble_msg_ids.append(cd_bubble)
+            else:
+                err_bubble = await send_html(
+                    update.message,
+                    ui.render_command_bubble(cmd, 0.0, f"cd: no such directory: {new_dir}", is_running=False, exit_code=1, cwd=sess.cwd)
+                )
+                sess.bubble_msg_ids.append(err_bubble)
+                sess.history.append({"cmd": cmd, "exit_code": 1, "took": 0.0, "snippet": f"no such dir: {new_dir}"})
+            return
+
+        # Execute the command with live streaming
+        exit_code, full_output, elapsed, bubble_msg = await shell_exec_live(cmd, sess.cwd, update)
+        if bubble_msg:
+            sess.bubble_msg_ids.append(bubble_msg)
+        snippet = full_output[:120].replace("\n", " ") if full_output else ""
+        sess.history.append({"cmd": cmd, "exit_code": exit_code, "took": round(elapsed, 1), "snippet": snippet})
+        return
+
+    # ── Normal HARVIS mode ─────────────────────────────────────────────────────
     parsed = parse_slash(prompt_text)
     if parsed:
         if parsed["kind"] == "status":
@@ -491,11 +715,12 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_html(update.message, ui.md_to_html(switch_message(parsed["mode"]), legacy=True))
             return
         if parsed["kind"] == "oneshot":
-            await process_chat_query(update, context, parsed["prompt"], mode=parsed["mode"])
+            await submit_query(update, context, parsed["prompt"], mode=parsed["mode"])
             return
 
     mode = USER_MODES.get(user.id, DEFAULT_MODE)
-    await process_chat_query(update, context, prompt_text, mode=mode)
+    await submit_query(update, context, prompt_text, mode=mode)
+
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -531,18 +756,57 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Process with auto vision detection
         mode = USER_MODES.get(user.id, DEFAULT_MODE)
         logger.info(f"Processing photo with mode: {mode}")
-        await process_chat_query(update, context, prompt_with_image, mode=mode)
+        await submit_query(update, context, prompt_with_image, mode=mode)
         
     except Exception as e:
         logger.error(f"Error in photo_handler: {e}", exc_info=True)
         await update.message.reply_text(f"❌ Error processing photo: {str(e)}")
 
 
+# One task per user at a time. Messages sent while a task runs are queued, never allowed to
+# cancel it (an overnight job must not die because you asked a side question).
+RUNNING = set()
+QUEUES = {}     # user_id -> [(update, context, prompt, mode, kwargs)]
+NEW_MSG_POLICY = os.getenv("HARVIS_TG_NEW_MSG", "queue").lower()   # "queue" | "interrupt"
+
+
+async def submit_query(update, context, prompt_text, mode="normal", **kw):
+    """Entry point for every user request: run now, or queue behind the running task."""
+    uid = update.effective_user.id
+    if uid in RUNNING:
+        if NEW_MSG_POLICY == "interrupt":
+            evt = ACTIVE_CANCELS.get(uid)
+            if evt and not evt.is_set():
+                evt.set()
+            QUEUES.setdefault(uid, []).insert(0, (update, context, prompt_text, mode, kw))
+            await send_html(update.message, "⏩ <b>Interrupting</b> the current task to handle this first.")
+        else:
+            QUEUES.setdefault(uid, []).append((update, context, prompt_text, mode, kw))
+            n = len(QUEUES[uid])
+            await send_html(
+                update.message,
+                f"📥 <b>Queued</b> (#{n}). I'm still on the current task and will start this right after. "
+                f"Send /stop to cancel the current task and clear the queue.")
+        return
+    RUNNING.add(uid)
+    try:
+        await process_chat_query(update, context, prompt_text, mode=mode, **kw)
+        while QUEUES.get(uid):
+            u2, c2, p2, m2, k2 = QUEUES[uid].pop(0)
+            await process_chat_query(u2, c2, p2, mode=m2, **k2)
+    finally:
+        RUNNING.discard(uid)
+        QUEUES.pop(uid, None)
+
+
 async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE, prompt_text: str, is_thinking_mode: bool = False, mode: str = "normal", model_override: str = None):
-    """Core chat query execution pipeline with live streaming, thinking bubbles, and tool dispatch."""
+    """Core chat pipeline. The agent never waits on Telegram: progress is handed to ChatIO,
+    which rate-limits, coalesces edits and waits out flood control."""
     user = update.effective_user
     active_sid = get_active_session(user.id)
     session_id = f"telegram_{user.id}_{active_sid}"
+    io = tio.get_io(getattr(update.message, "chat_id", 0))
+    loop = asyncio.get_running_loop()
 
     if active_sid != "general":
         info = get_session_info(active_sid)
@@ -552,28 +816,24 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
     cancel_evt = threading.Event()
     ACTIVE_CANCELS[user.id] = cancel_evt
-
     stop_keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🛑 Stop Generation", callback_data=f"cancel_gen_{user.id}")]
     ])
 
-    # Initial status bubble
     cfg = MODE_CONFIG.get(mode, MODE_CONFIG["normal"])
     status = ui.Status(cfg["label"], cfg["emoji"])
-    status_msg = await send_html(update.message, status.render("Starting…"), stop_keyboard)
+    view = {"note": "Starting…", "stream": "", "think": ""}
+    status_msg = await io.send(update.message, status.render("Starting…"), stop_keyboard)
+    tick_task = None
 
-    current_prompt = prompt_text
-    role = "user"
-    final_text = ""
-    step_bubbles = []
-    loop = asyncio.get_running_loop()
-
-    last_tool_name = None
-    last_tool_output = ""
-    last_tool_success = True
+    def refresh():
+        """Push the current state to the status bubble. Non-blocking; newest state wins."""
+        if view["stream"].strip() or view["think"].strip():
+            io.edit(status_msg, ui.stream_view(view["stream"], status, view["think"]), stop_keyboard)
+        else:
+            io.edit(status_msg, status.render(view["note"]), stop_keyboard)
 
     try:
-        # Check if the user is replying to a specific Telegram message (e.g. heartbeat or prior question)
         reply_context = ""
         if update.message.reply_to_message:
             reply_msg = update.message.reply_to_message
@@ -586,73 +846,54 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
         current_prompt = f"[via Telegram]{reply_context} {prompt_text}"
 
-        stream_buffer = ""
-        last_tg_edit_time = [0.0]
-        step_count = [0]
-        thinking_bubble = [None]
+        # ── streaming: worker thread -> loop thread, throttled ──
+        stream_buffer = [""]
+        last_push = [0.0]
 
-        def tg_stream_cb(chunk):
-            nonlocal stream_buffer
+        def push_stream(think_text, answer_text):          # runs on the loop thread
+            view["think"], view["stream"] = think_text, answer_text
+            refresh()
+
+        def tg_stream_cb(chunk):                           # runs in the model worker thread
             if cancel_evt.is_set():
                 raise RuntimeError("Cancelled by user")
             if not chunk:
                 return
-            stream_buffer += chunk
-            now = time.time()
-            if now - last_tg_edit_time[0] <= 0.8:
+            stream_buffer[0] = (stream_buffer[0] + chunk)[-200_000:]
+            now = time.monotonic()
+            if now - last_push[0] < 1.2:
                 return
-            last_tg_edit_time[0] = now
+            last_push[0] = now
+            think_text, answer_text = ui.split_think(stream_buffer[0])
+            loop.call_soon_threadsafe(push_stream, think_text, clean_response(answer_text))
 
-            think_text, answer_text = ui.split_think(stream_buffer)
-            if think_text:
-                view = ui.think_view(think_text)
-                if thinking_bubble[0] is None:
-                    try:
-                        fut = asyncio.run_coroutine_threadsafe(send_html(update.message, view), loop)
-                        thinking_bubble[0] = fut.result(timeout=1.5)
-                    except Exception:
-                        pass
-                else:
-                    asyncio.run_coroutine_threadsafe(_safe_edit(thinking_bubble[0], view), loop)
-
-            answer_text = clean_response(answer_text)
-            if answer_text.strip():
-                asyncio.run_coroutine_threadsafe(
-                    _safe_edit(status_msg, ui.stream_view(answer_text, status), stop_keyboard), loop)
-
-        # ── Run the request through the autonomous harness ──
-        pending = {}
-
-        async def on_progress(ev):
-            nonlocal stream_buffer, last_tool_name, last_tool_output, last_tool_success
+        # ── agent progress: plain function, no awaits, never blocks the agent ──
+        def on_progress(ev):
             kind = ev.get("type")
-
             if kind == "thinking":
-                stream_buffer = ""
-                await _safe_edit(status_msg, status.render("Thinking…"), stop_keyboard)
-
+                stream_buffer[0] = ""
+                view.update(note="Thinking…", stream="", think="")
             elif kind == "acting":
-                name, args = ev["tool_name"], ev.get("tool_args") or {}
-                last_tool_name = name
-                step_count[0] = ev["step"]
-                status.start(ev["step"], name)
-                await _safe_edit(status_msg, status.render("Working…"), stop_keyboard)
-                bubble = await send_html(update.message, ui.step_running(ev["step"], name, args))
-                step_bubbles.append(bubble)
-                pending[ev["step"]] = (bubble, name, args, time.time())
-
+                status.start(ev["step"], ev["tool_name"], ev.get("tool_args") or {})
+                status.set_plan(ev.get("plan"))
+                view.update(note="Working…", stream="", think="")
             elif kind == "checked":
-                bubble, name, args, t0 = pending.pop(
-                    ev["step"], (None, ev.get("tool_name", "?"), {}, time.time()))
-                out = (ev.get("output") or "").strip()
-                ok = bool(ev.get("success"))
-                last_tool_success = ok
-                last_tool_output = out if ok else f"Error: {out}"
-                secs = time.time() - t0
-                status.finish(ev["step"], ok, name, args, out, secs)
-                if bubble:
-                    await _safe_edit(bubble, ui.step_done(ev["step"], name, args, out, ok, secs))
-                await _safe_edit(status_msg, status.render("Thinking…"), stop_keyboard)
+                status.finish(ev["step"], bool(ev.get("success")), ev.get("tool_name", "?"),
+                              (ev.get("output") or "").strip())
+                status.set_plan(ev.get("plan"))
+                view["note"] = "Thinking…"
+            refresh()
+
+        async def ticker():
+            """Keep the elapsed timer fresh without spamming: every 5s early on, every 15s later."""
+            try:
+                while True:
+                    await asyncio.sleep(5 if status.elapsed() < 180 else 15)
+                    refresh()
+            except asyncio.CancelledError:
+                pass
+
+        tick_task = loop.create_task(ticker())
 
         # Chat memory: earlier conversation goes in as context, minus legacy tool-call plumbing.
         prefix = []
@@ -685,54 +926,31 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
         finally:
             set_harvis_busy(False)
 
+        tick_task.cancel()
         status_code = result.get("status")
         if status_code == "cancelled":
-            final_text = "🛑 <b>Generation stopped by Harold.</b>"
+            final_text = "🛑 **Generation stopped by Harold.**"
         elif status_code in ("finished", "answered"):
             final_text = result.get("output") or ""
             if status_code == "finished" and result.get("success") is False and final_text:
                 final_text = f"⚠️ {final_text}"
-        else:  # timeout, step_limit_reached, stuck, provider_error
+        else:  # timeout, step_limit_reached, stuck, provider_error, error
             final_text = f"⚠️ {result.get('message', 'Stopped early.')} Say 'continue' to pick up where I left off."
 
         save_message(session_id, "assistant",
                      final_text if status_code in ("finished", "answered", "cancelled")
                      else f"{final_text}\n(step trace: {result.get('trace')})")
 
-        # Process thinking tags if present in final text
+        # Reasoning tags in the final text -> a collapsed block before the answer
         think_content = ""
         if final_text and "<think>" in final_text:
-            think_matches = re.findall(r"<think>(.*?)(?:</think>|$)", final_text, re.DOTALL)
-            think_content = "".join(think_matches).strip()
+            think_content = "".join(re.findall(r"<think>(.*?)(?:</think>|$)", final_text, re.DOTALL)).strip()
             final_text = re.sub(r"<think>.*?(?:</think>|$)", "", final_text, flags=re.DOTALL).strip()
-
-        if think_content:
-            if thinking_bubble[0]:
-                await _safe_edit(thinking_bubble[0], ui.think_view(think_content, done=True))
-            else:
-                try:
-                    await send_html(update.message, ui.think_view(think_content, done=True))
-                except Exception:
-                    pass
-
         final_text = clean_response(final_text)
 
-        # status bubble always goes; step bubbles only if you want them kept
-        if not ui.KEEP_STEP_BUBBLES:
-            for bubble in step_bubbles:
-                try:
-                    await bubble.delete()
-                except Exception:
-                    pass
-        try:
-            await status_msg.delete()
-        except Exception:
-            pass
-
-        # final answer: converted to Telegram HTML, chunked safely, footer + log button on the last chunk
         chunks = ui.render_final(final_text) or ["Done! 👍"]
         foot = ui.footer(status)
-        if len(chunks[-1]) + len(foot) <= 4000:
+        if ui.visible_len(chunks[-1]) + ui.visible_len(foot) <= 4000:
             chunks[-1] += foot
         else:
             chunks.append(foot.strip())
@@ -743,14 +961,34 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
             ui.store_log(task_id, status.log)
             markup = ui.details_keyboard(task_id)
 
+        # Deliver FIRST (patiently, through flood control), then tidy up the status bubble.
+        # A new message (not an edit) so the phone actually notifies you when a long job is done.
+        io.discard(status_msg)
+        if think_content:
+            await io.send(update.message, ui.think_view(think_content, done=True), patient=True)
+        delivered = True
         for i, chunk in enumerate(chunks):
-            try:
-                await send_html(update.message, chunk, markup if i == len(chunks) - 1 else None)
-            except Exception as e:
-                logger.error(f"Failed to send Telegram reply: {e}")
+            sent = await io.send(update.message, chunk, markup if i == len(chunks) - 1 else None, patient=True)
+            delivered = delivered and sent is not None
+        if not delivered:
+            logger.error("Final answer could not be delivered as messages; sending as a file")
+            await io.send_document(update.message, (final_text or "(empty)").encode("utf-8"),
+                                   "harvis_answer.txt", "Your answer (message delivery failed)")
+        await io.delete(status_msg)
 
+    except Exception as e:
+        logger.error(f"process_chat_query failed: {e}", exc_info=True)
+        if tick_task:
+            tick_task.cancel()
+        io.discard(status_msg)
+        await io.send(update.message, f"❌ <b>Something went wrong:</b> <code>{ui.esc(str(e)[:300])}</code>\n"
+                                      f"Say 'continue' and I'll pick up from my task file.", patient=True)
+        await io.delete(status_msg)
     finally:
-        ACTIVE_CANCELS.pop(user.id, None)
+        if tick_task:
+            tick_task.cancel()
+        if ACTIVE_CANCELS.get(user.id) is cancel_evt:      # never clear a newer task's cancel event
+            ACTIVE_CANCELS.pop(user.id, None)
 
 
 # ─── Inline Button Handler ────────────────────────────────────────────────────
@@ -871,34 +1109,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ─── Utility ──────────────────────────────────────────────────────────────────
 
+def _io_for(msg):
+    return tio.get_io(getattr(msg, "chat_id", 0))
+
+
 async def _safe_edit(msg, html_text: str, markup=None, reply_markup=None):
-    """Edit with Telegram HTML; fall back to plain text if the HTML is rejected."""
+    """Edit a message (rate-limited, sanitized, flood-control aware). Waits until applied."""
     if not msg or not html_text:
         return
-    rm = markup if markup is not None else reply_markup
-    try:
-        await msg.edit_text(html_text[:4096], parse_mode=ParseMode.HTML,
-                            reply_markup=rm, disable_web_page_preview=True)
-    except Exception as e:
-        s = str(e)
-        if "not modified" in s or "RetryAfter" in s or "Too Many" in s or "Flood" in s:
-            return
-        try:
-            await msg.edit_text(ui.strip_tags(html_text)[:4096], reply_markup=rm)
-        except Exception as e2:
-            if "not modified" not in str(e2):
-                logger.warning(f"Failed to edit message: {e2}")
+    await _io_for(msg).edit_now(msg, html_text, markup if markup is not None else reply_markup)
 
 
 async def send_html(msg, html_text: str, markup=None, reply_markup=None):
-    """Reply with Telegram HTML; fall back to plain text. Returns the sent message."""
-    rm = markup if markup is not None else reply_markup
-    try:
-        return await msg.reply_text(html_text[:4096], parse_mode=ParseMode.HTML,
-                                    reply_markup=rm, disable_web_page_preview=True)
-    except Exception as e:
-        logger.warning(f"HTML send failed ({e}); falling back to plain text")
-        return await msg.reply_text(ui.strip_tags(html_text)[:4096], reply_markup=rm)
+    """Reply with Telegram HTML (rate-limited, sanitized, flood-control aware). Returns the sent message or None."""
+    return await _io_for(msg).send(msg, html_text, markup if markup is not None else reply_markup)
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -944,6 +1168,9 @@ def main():
     app.add_handler(CommandHandler("health", health_command))
     app.add_handler(CommandHandler("friday", friday_command))
     app.add_handler(CommandHandler("edith", edith_command))
+    app.add_handler(CommandHandler("shell", shell_command))
+    app.add_handler(CommandHandler("sh", shell_command))
+    app.add_handler(CommandHandler("exit", lambda u, c: exit_shell_mode(u.effective_user.id, u)))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler), group=1)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler), group=1)

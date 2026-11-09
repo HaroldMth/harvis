@@ -155,3 +155,159 @@ def test_cancel_during_model_call(monkeypatch, tmp_path):
     r.task_mgr = TaskManager("t", tasks_dir=str(tmp_path))
     res = asyncio.run(r.run("goal", cancel_event=cancel))
     assert res["status"] == "cancelled"
+
+
+def test_agent_writes_and_sees_its_own_task_file(monkeypatch, tmp_path):
+    res, seen = run_scripted(monkeypatch, tmp_path, [
+        call("update_task", content="# Goal\n- [ ] step one\n- [ ] step two"),
+        call("finish", summary="done"),
+    ])
+    assert res["status"] == "finished"
+    assert "step one" in (tmp_path / "t" / "task.md").read_text()
+    assert "step one" in res["plan"]
+
+
+def test_task_file_reaches_system_prompt_every_turn(monkeypatch, tmp_path):
+    prompts = []
+    script = iter([call("update_task", content="# Goal\n- [ ] REMEMBER-ME"), text("ok")])
+
+    def engine(history, **k):
+        prompts.append(k["system_prompt"])
+        return next(script)
+
+    monkeypatch.setattr(harness, "dispatch", lambda n, a: {"success": True, "output": "ok"})
+    r = harness.HarnessRunner(task_id="t", engine=engine)
+    r.task_mgr = TaskManager("t", tasks_dir=str(tmp_path))
+    asyncio.run(r.run("goal"))
+    assert "REMEMBER-ME" not in prompts[0] and "REMEMBER-ME" in prompts[1]
+
+
+def test_edit_test_loop_is_not_counted_as_stuck(monkeypatch, tmp_path):
+    # Same command, different output each time = progress, not a loop.
+    n = {"i": 0}
+
+    def disp(name, args):
+        n["i"] += 1
+        return {"success": True, "output": f"{20 - n['i']} failures left"}
+
+    res, _ = run_scripted(monkeypatch, tmp_path,
+                          [call("shell_exec", cmd="pytest")] * 12 + [call("finish", summary="green")], dispatch=disp)
+    assert res["status"] == "finished"
+
+
+def test_engine_failure_is_retried(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "ENGINE_RETRIES", 3)
+    monkeypatch.setattr(settings, "ENGINE_RETRY_BACKOFF", 0)
+    attempts = {"n": 0}
+
+    def engine(history, **k):
+        attempts["n"] += 1
+        return None if attempts["n"] < 3 else text("recovered")
+
+    monkeypatch.setattr(harness, "dispatch", lambda n, a: {"success": True, "output": "ok"})
+    r = harness.HarnessRunner(task_id="t", engine=engine)
+    r.task_mgr = TaskManager("t", tasks_dir=str(tmp_path))
+    res = asyncio.run(r.run("goal"))
+    assert res["output"] == "recovered" and attempts["n"] == 3
+
+
+def batch(*calls, extra_text=None):
+    first = calls[0]
+    r = dict(first)
+    r["extra_calls"] = [{"tool_name": c["tool_name"], "tool_args": c["tool_args"]} for c in calls[1:]]
+    return r
+
+
+def test_batch_runs_every_call_and_returns_each_result(monkeypatch, tmp_path):
+    ran = []
+
+    def disp(name, args):
+        ran.append((name, args.get("path") or args.get("cmd")))
+        return {"success": True, "output": f"out-{args.get('path') or args.get('cmd')}"}
+
+    res, seen = run_scripted(monkeypatch, tmp_path, [
+        batch(call("read_file", path="a"), call("read_file", path="b"), call("grep", pattern="x", path="c")),
+        call("finish", summary="done"),
+    ], dispatch=disp)
+    assert res["status"] == "finished"
+    assert [r[0] for r in ran] == ["read_file", "read_file", "grep"]
+    last = "\n".join(str(m["content"]) for m in seen[1])
+    assert "out-a" in last and "out-b" in last and "batch of 3 calls" in last
+
+
+def test_read_only_calls_run_concurrently_but_writes_stay_ordered(monkeypatch, tmp_path):
+    import threading, time as _t
+    order, active, peak = [], {"n": 0}, {"n": 0}
+    lock = threading.Lock()
+
+    def disp(name, args):
+        with lock:
+            active["n"] += 1
+            peak["n"] = max(peak["n"], active["n"])
+        _t.sleep(0.05)
+        with lock:
+            active["n"] -= 1
+            order.append(name)
+        return {"success": True, "output": "ok"}
+
+    run_scripted(monkeypatch, tmp_path, [
+        batch(call("read_file", path="a"), call("read_file", path="b"), call("edit_file", path="a", old_str="x", new_str="y"),
+              call("shell_exec", cmd="echo hi > f")),
+        text("ok")], dispatch=disp)
+    assert peak["n"] == 2                      # the two reads overlapped, nothing else did
+    assert order[-2:] == ["edit_file", "shell_exec"]
+
+
+def test_finish_after_unverified_edit_is_deferred_once(monkeypatch, tmp_path):
+    res, seen = run_scripted(monkeypatch, tmp_path, [
+        call("edit_file", path="a", old_str="x", new_str="y"),
+        call("finish", success=True, summary="fixed"),   # no check ran since the edit
+        call("finish", success=True, summary="fixed"),   # agent confirms: goes through
+    ])
+    assert res["status"] == "finished" and res["success"] is True
+    assert any("finish not accepted yet" in str(m["content"]) for m in seen[2])
+
+
+def test_finish_after_passing_check_is_accepted_immediately(monkeypatch, tmp_path):
+    res, seen = run_scripted(monkeypatch, tmp_path, [
+        call("edit_file", path="a", old_str="x", new_str="y"),
+        call("run_tests"),
+        call("finish", success=True, summary="fixed"),
+    ])
+    assert res["status"] == "finished" and len(seen) == 3
+
+
+def test_git_snapshot_records_ref_without_touching_worktree(tmp_path):
+    import subprocess
+    d = str(tmp_path)
+    run = lambda *a: subprocess.run(["git", "-C", d, *a], capture_output=True, text=True)
+    run("init", "-q"); run("config", "user.email", "t@t"); run("config", "user.name", "t")
+    (tmp_path / "f.txt").write_text("one"); run("add", "."); run("commit", "-qm", "init")
+    (tmp_path / "f.txt").write_text("two")        # uncommitted change
+    sha = harness._git_snapshot(d, "task1", "step1")
+    assert sha and run("rev-parse", "refs/harvis/task1/step1").stdout.strip() == sha
+    assert (tmp_path / "f.txt").read_text() == "two"  # worktree untouched
+    assert harness._git_snapshot(str(tmp_path / "nope"), "t", "s") is None
+
+
+def test_blocklist_catches_common_wipe_variants():
+    pytest.importorskip("tools.session")
+    from tools.system import shell_exec
+    for cmd in ["rm -rf ~", "rm -fr /", "rm -rf $HOME", "rm -rf /*", "sudo rm -rf / --no-preserve-root",
+                "find / -delete", "mkfs.ext4 /dev/sda1", "dd if=x of=/dev/sda"]:
+        res = shell_exec(cmd=cmd)
+        assert not res["success"] and "blocked" in res["error"].lower(), cmd
+    from tools.system import BLOCK_PATTERNS
+    for ok_cmd in ["rm -rf ./build/tmp-xyz", "rm -rf node_modules", "rm file.txt"]:
+        assert not any(p.search(ok_cmd) for p in BLOCK_PATTERNS), ok_cmd  # scoped deletes are not hard-blocked
+
+
+def test_daemon_mode_denies_destructive_by_default(monkeypatch):
+    pytest.importorskip("tools.session")
+    import tools.system as sysmod
+    monkeypatch.setattr(sysmod, "confirmation_callback", None)
+    monkeypatch.setattr(sysmod.sys, "stdin", None)
+    monkeypatch.delenv("HARVIS_AUTO_APPROVE", raising=False)
+    assert sysmod.request_confirmation("rm something") is False
+    monkeypatch.setenv("HARVIS_AUTO_APPROVE", "1")
+    assert sysmod.request_confirmation("rm something") is True

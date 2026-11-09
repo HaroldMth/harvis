@@ -9,18 +9,19 @@ Simplified 2-Tier Engine Architecture:
 MODES = ("normal", "fast")
 DEFAULT_MODE = "normal"
 
-DEFAULT_ENGINE = "anthropic/claude-sonnet-5"
+DEFAULT_ENGINE = "openai/gpt-5.3-codex"
 DEFAULT_FALLBACKS = [
-    "anthropic/claude-haiku-4.5",
-    "openai/gpt-4.1",
-    "deepseek/deepseek-chat",
-    "ddgw/claude-haiku-4-5",
-    "qwen/qwen-2.5-coder-32b-instruct",
+    "openai/gpt-6-astra",
+    "openai/gpt-6.1-sol",
+    "gemini-3.5-flash",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-120b",
 ]
 
-FAST_ENGINE = "anthropic/claude-haiku-4.5"
+FAST_ENGINE = "openai/gpt-6.1-sol"
 FAST_FALLBACKS = [
     "qwen/qwen3.8-27b",
+    "gemini-3.5-flash",
     "openai/gpt-oss-120b",
     "codestral-latest",
 ]
@@ -35,12 +36,12 @@ ALIASES = {
 
 MODE_HELP = (
     "🤖 *HARVIS Engine Modes:*\n"
-    "• `Default` — Opus Proxy (`claude-fable-5` / `claude-opus-4-8` off-peak) ➔ OmniRoute (`openai/gpt-4.1`)\n"
-    "   Deep verification, tool calling, and self-correcting harness.\n"
-    "   *Failovers:* `deepseek/deepseek-chat` ➔ `ddgw/claude-haiku-4-5`\n\n"
-    "• `/fast <query>` — High-Speed Sprint (`qwen/qwen3.8-27b` on Groq LPU)\n"
+    "• `Default` — Pollinations (`openai/gpt-5.3-codex` ➔ `openai/gpt-6-astra` ➔ `openai/gpt-6.1-sol`) ➔ Gemini (`gemini-3.5-flash`)\n"
+    "   Deep verification, tool calling, and self-correcting autonomous coding.\n"
+    "   *Failovers:* `qwen/qwen3.8-27b` ➔ `codestral-latest`\n\n"
+    "• `/fast <query>` — High-Speed Sprint (`openai/gpt-6.1-sol` ➔ `qwen/qwen3.8-27b` on Groq LPU)\n"
     "   Instant factual answers, rapid lookups, fast status checks.\n"
-    "   *Failover:* `openai/gpt-oss-120b` ➔ `codestral-latest`\n\n"
+    "   *Failover:* `gemini-3.5-flash` ➔ `openai/gpt-oss-120b` ➔ `codestral-latest`\n\n"
     "• `/mode` — Show active engine configuration"
 )
 

@@ -12,18 +12,33 @@ from brain.self_improvement import log_issue
 
 logger = logging.getLogger("harvis.router")
 
-from brain.providers import call_omniroute, call_opus_proxy, call_groq, call_mistral, call_gemini, call_omegatech_secret
+from brain.providers import (
+    call_omniroute,
+    call_opus_proxy,
+    call_groq,
+    call_mistral,
+    call_gemini,
+    call_omegatech_secret,
+    call_pollinations,
+    call_pollinations_codex,
+    call_pollinations_astra,
+    call_pollinations_sol,
+)
 from brain.modes import get_fallback_chain, get_engine
 from config import GROQ_API_KEY
 import requests
 
-# Deep reasoning chain (frontier intelligence: Claude Fable 5 / Opus Proxy -> OmniRoute -> Omegatech -> Groq -> Mistral)
+# Deep reasoning chain (frontier intelligence: Pollinations Codex / Astra / Sol -> Gemini -> Groq -> Mistral -> Fallbacks)
 DEEP_PROVIDERS = [
-    {"name": "opus_proxy",       "func": call_opus_proxy},
-    {"name": "omniroute",        "func": call_omniroute},
-    {"name": "omegatech_secret", "func": call_omegatech_secret},
-    {"name": "groq",             "func": call_groq},
-    {"name": "mistral",          "func": call_mistral},
+    {"name": "pollinations_codex", "func": call_pollinations_codex},
+    {"name": "pollinations_astra", "func": call_pollinations_astra},
+    {"name": "pollinations_sol",   "func": call_pollinations_sol},
+    {"name": "gemini",             "func": call_gemini},
+    {"name": "groq",               "func": call_groq},
+    {"name": "mistral",            "func": call_mistral},
+    {"name": "opus_proxy",         "func": call_opus_proxy},
+    {"name": "omniroute",          "func": call_omniroute},
+    {"name": "omegatech_secret",   "func": call_omegatech_secret},
 ]
 
 CAPABLE_PROVIDERS = DEEP_PROVIDERS
@@ -34,6 +49,37 @@ PROVIDER_CHAINS = {
     "fast":   DEEP_PROVIDERS,
     "deep":   DEEP_PROVIDERS,
 }
+
+
+# --- Circuit breaker ---------------------------------------------------------------------
+# A provider that just failed is skipped for a cooldown (30s, doubling per consecutive
+# failure, capped at 5 min) so we stop paying its connect/read timeout on every turn.
+# If every provider is cooling down we try them all anyway.
+_BREAKER = {}          # name -> {"fails": int, "until": float}
+BREAKER_BASE_SEC = 30
+BREAKER_MAX_SEC = 300
+
+
+def _status(name, ok):
+    try:
+        update_provider_status(name, ok)
+    except Exception as e:  # a DB hiccup after a good response must not trigger a second paid call
+        logger.warning(f"provider status write failed for {name}: {e}")
+    if ok:
+        _BREAKER.pop(name, None)
+    else:
+        fails = _BREAKER.get(name, {}).get("fails", 0) + 1
+        _BREAKER[name] = {"fails": fails,
+                          "until": time.time() + min(BREAKER_MAX_SEC, BREAKER_BASE_SEC * 2 ** (fails - 1))}
+
+
+def _usable(chain):
+    now = time.time()
+    open_ = [p for p in chain if _BREAKER.get(p["name"], {}).get("until", 0) <= now]
+    if len(open_) < len(chain):
+        skipped = [p["name"] for p in chain if p not in open_]
+        logger.info(f"Circuit breaker skipping cooling-down providers: {skipped}")
+    return open_ or list(chain)
 
 
 def classify_intent(prompt: str) -> str:
@@ -198,7 +244,7 @@ def complete(history, system_prompt=None, mode="normal", stream_callback=None,
     other providers can still end a task with a plain text reply.
     """
     # All requests route through deep frontier reasoning chain
-    effective_chain = PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS)
+    effective_chain = _usable(PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS))
 
     for provider in effective_chain:
         name, func = provider["name"], provider["func"]
@@ -211,7 +257,7 @@ def complete(history, system_prompt=None, mode="normal", stream_callback=None,
                                    model=candidate, extra_tools=extra_tools)
                         res["provider"] = name
                         res["model"] = res.get("routed_model") or candidate
-                        update_provider_status(name, True)
+                        _status(name, True)
                         return res
                     except Exception as m_err:
                         if stream_callback and "Cancelled by user" in str(m_err):
@@ -225,19 +271,28 @@ def complete(history, system_prompt=None, mode="normal", stream_callback=None,
                 if name == "groq" and len(history) > 10:
                     call_history = history[-10:]
 
+                kw = {}
+                if extra_tools:
+                    kw["extra_tools"] = extra_tools
+                if model_override and name.startswith("pollinations"):
+                    kw["model"] = model_override
+
                 try:
-                    res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback)
+                    res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback, **kw)
                 except TypeError:
-                    res = func(call_history, system_prompt=system_prompt)
+                    try:
+                        res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback)
+                    except TypeError:
+                        res = func(call_history, system_prompt=system_prompt)
                 res["provider"] = name
                 res["model"] = res.get("routed_model") or name
-                update_provider_status(name, True)
+                _status(name, True)
                 return res
         except Exception as e:
             if "Cancelled by user" in str(e):
                 raise
             logger.warning(f"Provider {name} failed: {e}")
-            update_provider_status(name, False)
+            _status(name, False)
             log_issue("PROVIDER_FAIL", f"Provider '{name}' failed in mode '{mode}'",
                       details=str(e), recommendation=f"Check API key, quota limits, or model route mapping for '{name}'.")
 
@@ -321,7 +376,7 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
             history = [{"role": role, "content": prompt}]
 
         # 3. Pick provider chain based on mode (all point to deep frontier reasoning)
-        provider_chain = PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS)
+        provider_chain = _usable(PROVIDER_CHAINS.get(mode, CAPABLE_PROVIDERS))
 
         start_time = time.time()
         for provider in provider_chain:
@@ -344,7 +399,7 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
                             routed = res.get("routed_model") or candidate_model
                             res["provider"] = name
                             res["model"] = routed
-                            update_provider_status(name, True)
+                            _status(name, True)
 
                             if role == "tool" and res.get("type") == "text":
                                 res["content"] = clean_tool_response(res["content"])
@@ -363,6 +418,8 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
                         raise last_omni_err
                 else:
                     extra = {}
+                    if model_override and name.startswith("pollinations"):
+                        extra["model"] = model_override
                     call_history = history
                     if name == "groq" and len(history) > 10:
                         call_history = history[-10:]
@@ -370,10 +427,13 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
                     try:
                         res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback, **extra)
                     except TypeError:
-                        res = func(call_history, system_prompt=system_prompt, **extra)
+                        try:
+                            res = func(call_history, system_prompt=system_prompt, stream_callback=stream_callback)
+                        except TypeError:
+                            res = func(call_history, system_prompt=system_prompt)
 
                     p_elapsed = round(time.time() - p_start, 2)
-                    update_provider_status(name, True)
+                    _status(name, True)
                     routed = res.get("routed_model") or extra.get("model") or name
                     res["provider"] = name
                     res["model"] = routed
@@ -400,7 +460,7 @@ def ask(session_id, prompt, role="user", use_cache=False, system_prompt=None, st
             except Exception as e:
                 err_msg = str(e)
                 logger.warning(f"Provider {name} failed: {err_msg}")
-                update_provider_status(name, False)
+                _status(name, False)
                 log_issue(
                     "PROVIDER_FAIL",
                     f"Provider '{name}' failed in mode '{mode}'",

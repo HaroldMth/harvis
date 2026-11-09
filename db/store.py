@@ -1,12 +1,22 @@
 import sqlite3
 import os
 import json
+import time
+import threading
 
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "harvis.db"))
 SCHEMA_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "schema.sql"))
 
 def get_connection():
-    return sqlite3.connect(DB_PATH)
+    # WAL + a long busy timeout: the bot, harness threads and heartbeat all write to this file,
+    # and the default (rollback journal, 5s) raises "database is locked" under that load.
+    conn = sqlite3.connect(DB_PATH, timeout=30)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
+    except sqlite3.Error:
+        pass
+    return conn
 
 def init_db():
     conn = get_connection()
@@ -20,14 +30,33 @@ def init_db():
 BUSY_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "busy_state.json"))
 
 
-def set_harvis_busy(is_busy: bool):
-    """Sets process-level busy state so heartbeat skips while HARVIS handles user requests."""
+_BUSY_LOCK = threading.Lock()
+_BUSY_COUNT = 0
+BUSY_STALE_SEC = 600  # a busy flag nobody has refreshed for this long is treated as a crashed task
+
+
+def _write_busy(count: int):
     try:
-        data = {"busy": is_busy, "ts": time.time()}
         with open(BUSY_FILE, "w") as f:
-            json.dump(data, f)
+            json.dump({"busy": count > 0, "count": count, "ts": time.time()}, f)
     except Exception:
         pass
+
+
+def set_harvis_busy(is_busy: bool):
+    """Process-level busy state so the heartbeat stays quiet while HARVIS works.
+    Reference-counted: two overlapping tasks no longer clear each other's flag."""
+    global _BUSY_COUNT
+    with _BUSY_LOCK:
+        _BUSY_COUNT = _BUSY_COUNT + 1 if is_busy else max(0, _BUSY_COUNT - 1)
+        _write_busy(_BUSY_COUNT)
+
+
+def touch_harvis_busy():
+    """Refresh the busy timestamp. Called every harness step so long tasks stay 'busy'."""
+    with _BUSY_LOCK:
+        if _BUSY_COUNT > 0:
+            _write_busy(_BUSY_COUNT)
 
 
 def is_harvis_busy() -> bool:
@@ -37,7 +66,7 @@ def is_harvis_busy() -> bool:
     try:
         with open(BUSY_FILE, "r") as f:
             data = json.load(f)
-        if data.get("busy") and (time.time() - data.get("ts", 0)) < 120:
+        if data.get("busy") and (time.time() - data.get("ts", 0)) < BUSY_STALE_SEC:
             return True
     except Exception:
         pass

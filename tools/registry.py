@@ -6,6 +6,7 @@ from tools.desktop import (
     brightness_control, media_control, screenshot,
 )
 from tools.timer import timer
+from tools.code import CODE_TOOLS_SCHEMA, CODE_TOOLS_DISPATCH
 from tools.browser_fetch import browser_fetch
 from db.store import log_tool_call
 
@@ -85,7 +86,11 @@ TOOLS_SCHEMA = [
                 },
                 "timeout": {
                     "type": "integer",
-                    "description": "Optional custom wait time in seconds (default 30). Set higher (60-300) for package installs, builds, or heavy scripts."
+                    "description": "Optional wait time in seconds (default 120, max 1800). Commands still running at the limit are killed. Set higher for big installs, builds or test suites."
+                },
+                "cwd": {
+                    "type": "string",
+                    "description": "Directory to run in. Defaults to the active project directory when a session has one."
                 }
             },
             "required": ["cmd"]
@@ -608,12 +613,16 @@ TOOL_DISPATCH = {
 }
 
 
+TOOLS_SCHEMA.extend(CODE_TOOLS_SCHEMA)
+TOOL_DISPATCH.update(CODE_TOOLS_DISPATCH)
+
+
 def get_all_tools_schema():
     """Return built-in + plugin schemas for LLM tool calling."""
     return TOOLS_SCHEMA + _get_plugin_schemas()
 
 
-def dispatch(name, args):
+def _dispatch_impl(name, args):
     """
     Looks up tool by name, runs it, logs the outcome, and returns a standard dict.
     Returns: { "success": bool, "output": str, "error": str, "status": str }
@@ -648,17 +657,24 @@ def dispatch(name, args):
             result = {"success": False, "error": str(e)}
             status = "failed"
 
+    # Tools sometimes return None or a bare string; never let that crash the caller.
+    if not isinstance(result, dict):
+        result = {"success": True, "output": "(no output)" if result is None else str(result)}
+
     if result.get("status") == "denied":
         status = "denied"
     elif not result.get("success"):
         status = "failed"
 
-    log_tool_call(
-        tool_name=name,
-        args=args,
-        result=result.get("output") or result.get("error") or "",
-        status=status
-    )
+    try:
+        log_tool_call(
+            tool_name=name,
+            args=args,
+            result=result.get("output") or result.get("error") or "",
+            status=status
+        )
+    except Exception:
+        pass  # a locked/unwritable log DB must never fail the tool that already ran
 
     return {
         "success": result.get("success", False),
@@ -666,3 +682,14 @@ def dispatch(name, args):
         "error": result.get("error", ""),
         "status": status
     }
+
+
+def dispatch(name, args):
+    """Crash-proof wrapper: whatever happens inside a tool becomes a failed result the agent can read."""
+    try:
+        res = _dispatch_impl(name, args)
+    except BaseException as e:  # noqa: BLE001 - includes SystemExit from misbehaving tools
+        if isinstance(e, KeyboardInterrupt):
+            raise
+        res = {"success": False, "output": "", "error": f"Tool '{name}' crashed: {type(e).__name__}: {e}", "status": "failed"}
+    return res

@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import requests
 import logging
@@ -20,7 +21,10 @@ logger = logging.getLogger("harvis.providers")
 
 # Helper to map standard tools schema to OpenAI/Cohere format
 def get_openai_tools():
-    return [{"type": "function", "function": t} for t in get_all_tools_schema()]
+    """Tool schemas sent on EVERY model call (~16k characters for all 30 tools). Set
+    HARVIS_TOOLS_EXCLUDE=timer,send_telegram,... to drop tools you never need and shorten every prompt."""
+    skip = {n.strip() for n in os.environ.get("HARVIS_TOOLS_EXCLUDE", "").split(",") if n.strip()}
+    return [{"type": "function", "function": t} for t in get_all_tools_schema() if t.get("name") not in skip]
 
 # Mapper functions for history
 def map_history_to_gemini(history):
@@ -222,66 +226,134 @@ def accumulate_stream_arguments(existing: str, chunk) -> str:
 
 
 def extract_tool_call_from_text(text: str) -> dict | None:
-    """Parse text outputs where an LLM outputted raw tool markup (e.g. <tool>...</tool> or raw JSON) instead of native tool_calls."""
+    """Parse text outputs where an LLM outputted raw tool markup (XML or JSON) instead of native tool_calls."""
     if not text or not isinstance(text, str):
         return None
-    # Pattern 1: <tool>{"name": "...", "arguments": {...}}</tool> or <tool_call>...</tool_call>
-    tool_match = re.search(r'<(?:tool|tool_call|function_call)>\s*({.*?})\s*</(?:tool|tool_call|function_call)>', text, re.DOTALL)
-    if tool_match:
+
+    def normalize_args(tool_name: str, args: dict) -> dict:
+        if tool_name == "shell_exec":
+            if "command" in args and "cmd" not in args:
+                args["cmd"] = args.pop("command")
+        elif tool_name == "update_task":
+            if "checklist" in args and "content" not in args:
+                args["content"] = args.pop("checklist")
+        elif tool_name in ("read_file", "edit_file", "file_op"):
+            if "file" in args and "path" not in args:
+                args["path"] = args.pop("file")
+        return args
+
+    # Find all blocks matching <tool_call>...</tool_call>, <tool>...</tool>, or <invoke>...</invoke>
+    blocks = re.findall(r"<(?:tool_call|tool|invoke)[^>]*>(.*?)(?:</(?:tool_call|tool|invoke)>|$)", text, re.DOTALL | re.IGNORECASE)
+
+    # If no tags found, try checking for direct JSON object
+    if not blocks:
+        json_match = re.search(r"{\s*\"(?:name|tool_name|function)\"\s*:\s*\"([a-zA-Z0-9_]+)\"\s*,\s*\"(?:arguments|args|parameters)\"\s*:\s*({.*?})\s*}", text, re.DOTALL)
+        if json_match:
+            try:
+                name = json_match.group(1)
+                args = json.loads(json_match.group(2))
+                return {"tool_name": name, "tool_args": normalize_args(name, args), "extra_calls": []}
+            except Exception:
+                pass
+        return None
+
+    extracted_calls = []
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        # 1. JSON inside block?
         try:
-            data = json.loads(tool_match.group(1))
-            name = data.get("name") or data.get("tool_name") or data.get("function")
-            args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
-            if name:
-                return {"tool_name": name, "tool_args": parse_tool_arguments(args)}
+            json_m = re.search(r"({.*})", block, re.DOTALL)
+            if json_m:
+                data = json.loads(json_m.group(1))
+                name = data.get("name") or data.get("tool_name") or data.get("function")
+                args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
+                if name:
+                    extracted_calls.append({"tool_name": name, "tool_args": normalize_args(name, parse_tool_arguments(args))})
+                    continue
         except Exception:
             pass
 
-    # Pattern 2: Raw JSON like {"name": "shell_exec", "arguments": {...}}
-    json_match = re.search(r'{\s*"name"\s*:\s*"([a-zA-Z0-9_]+)"\s*,\s*"(?:arguments|args|parameters)"\s*:\s*({.*?})\s*}', text, re.DOTALL)
-    if json_match:
-        name = json_match.group(1)
-        args_str = json_match.group(2)
-        try:
-            args = parse_tool_arguments(args_str)
-            return {"tool_name": name, "tool_args": args}
-        except Exception:
-            pass
+        # 2. XML function tag: <function=name>, <function name="...">, <name>...</name>, <invoke name="...">
+        fn_name = None
+        fn_m = re.search(r"<function[=:\s]+(?:function=)?[\"']?([a-zA-Z0-9_]+)[\"']?>", block, re.IGNORECASE)
+        if fn_m:
+            fn_name = fn_m.group(1)
+        else:
+            name_m = re.search(r"<name>([a-zA-Z0-9_]+)</name>", block, re.IGNORECASE)
+            if name_m:
+                fn_name = name_m.group(1)
+            else:
+                invoke_m = re.search(r"<invoke[=:\s]+[\"']?([a-zA-Z0-9_]+)[\"']?>", block, re.IGNORECASE)
+                if invoke_m:
+                    fn_name = invoke_m.group(1)
 
-    # Pattern 3: XML tag style: <tool_call><function=...><parameter=...>...</parameter></function></tool_call>
-    xml_tc_match = re.search(r'<tool_call>\s*<function=(?:function=)?([a-zA-Z0-9_]+)>(.*?)</function>\s*</tool_call>', text, re.DOTALL)
-    if xml_tc_match:
-        name = xml_tc_match.group(1)
-        body = xml_tc_match.group(2)
-        args = {}
-        for param_match in re.finditer(r'<parameter=([a-zA-Z0-9_]+)>(.*?)</parameter>', body, re.DOTALL):
-            param_name = param_match.group(1)
-            param_val = param_match.group(2).strip()
-            # If parameter looks like JSON, parse it, otherwise keep string
-            if (param_val.startswith("{") and param_val.endswith("}")) or (param_val.startswith("[") and param_val.endswith("]")):
-                try:
-                    param_val = json.loads(param_val)
-                except Exception:
-                    pass
-            args[param_name] = param_val
-        if name:
-            return {"tool_name": name, "tool_args": args}
+        if fn_name:
+            args = {}
+            # Check for <parameter=key>val</parameter> or <parameter name="key">val</parameter>
+            for pm in re.finditer(r"<parameter(?:[=:\s]+[\"']?| name=[\"'])([a-zA-Z0-9_]+)[\"']?>(.*?)(?:</parameter>|$)", block, re.DOTALL | re.IGNORECASE):
+                p_val = pm.group(2).strip()
+                if (p_val.startswith("{") and p_val.endswith("}")) or (p_val.startswith("[") and p_val.endswith("]")):
+                    try:
+                        p_val = json.loads(p_val)
+                    except Exception:
+                        pass
+                args[pm.group(1)] = p_val
+
+            # Check for direct child tags like <command>val</command>, <cmd>val</cmd>, <content>val</content>, <checklist>val</checklist>
+            for tm in re.finditer(r"<([a-zA-Z0-9_]+)>(.*?)(?:</\1>|$)", block, re.DOTALL):
+                tag_name = tm.group(1)
+                if tag_name not in ("tool_call", "tool", "function", "name", "parameter", "args", "arguments"):
+                    if tag_name not in args:
+                        t_val = tm.group(2).strip()
+                        if (t_val.startswith("{") and t_val.endswith("}")) or (t_val.startswith("[") and t_val.endswith("]")):
+                            try:
+                                t_val = json.loads(t_val)
+                            except Exception:
+                                pass
+                        args[tag_name] = t_val
+
+            extracted_calls.append({"tool_name": fn_name, "tool_args": normalize_args(fn_name, args)})
+
+    if extracted_calls:
+        first = extracted_calls[0]
+        first["extra_calls"] = extracted_calls[1:] if len(extracted_calls) > 1 else []
+        return first
 
     return None
 
 
 # Normalizers
+
+def _collect_extra_calls(by_index):
+    """Every completed tool call after the first, so a reply can carry a batch."""
+    calls = []
+    for idx in sorted(by_index.keys()):
+        tb = by_index[idx]
+        if tb["name"]:
+            calls.append({"tool_name": tb["name"], "tool_args": parse_tool_arguments(tb["arguments"])})
+    return calls[1:]
+
+
 def normalize_openai(response_json):
     choice = response_json["choices"][0]
     message = choice["message"]
     if "tool_calls" in message and message["tool_calls"]:
         tool_call = message["tool_calls"][0]
         args = parse_tool_arguments(tool_call["function"].get("arguments", {}))
+        extra = []
+        for tc in message["tool_calls"][1:]:
+            fn = tc.get("function", {})
+            if fn.get("name"):
+                extra.append({"tool_name": fn["name"], "tool_args": parse_tool_arguments(fn.get("arguments", {}))})
         return {
             "type": "tool_call",
             "content": None,
             "tool_name": tool_call["function"]["name"],
-            "tool_args": args
+            "tool_args": args,
+            "extra_calls": extra,
         }
     else:
         content = message.get("content") or ""
@@ -301,11 +373,11 @@ def normalize_openai(response_json):
         }
 
 # Provider Calls
-def call_gemini(history, system_prompt=None):
+def call_gemini(history, system_prompt=None, stream_callback=None, **kwargs):
     if not GEMINI_API_KEY:
         raise ValueError("Gemini API key is not configured.")
         
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={GEMINI_API_KEY}"
     contents = map_history_to_gemini(history)
     
     payload = {
@@ -317,7 +389,7 @@ def call_gemini(history, system_prompt=None):
     }
     
     headers = {"Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, json=payload, timeout=10)
+    response = requests.post(url, headers=headers, json=payload, timeout=20)
     
     if response.status_code != 200:
         raise RuntimeError(f"Gemini API failed with status {response.status_code}: {response.text}")
@@ -336,46 +408,78 @@ def call_gemini(history, system_prompt=None):
                 "content": None,
                 "tool_name": part["functionCall"]["name"],
                 "tool_args": part["functionCall"].get("args", {}),
-                "thought_signature": part.get("thoughtSignature")
+                "thought_signature": part.get("thoughtSignature"),
+                "routed_model": "gemini-3.5-flash"
             }
             
     # Fallback to text
     for part in parts:
         if "text" in part:
+            text_content = part["text"]
+            if stream_callback:
+                try:
+                    stream_callback(text_content)
+                except Exception:
+                    pass
             return {
                 "type": "text",
-                "content": part["text"],
+                "content": text_content,
                 "tool_name": None,
-                "tool_args": None
+                "tool_args": None,
+                "routed_model": "gemini-3.5-flash"
             }
             
-    return {"type": "text", "content": "", "tool_name": None, "tool_args": None}
+    return {"type": "text", "content": "", "tool_name": None, "tool_args": None, "routed_model": "gemini-3.5-flash"}
 
-def call_pollinations(history, system_prompt=None):
+def call_pollinations(history, system_prompt=None, stream_callback=None, enable_tools=True, model="openai/gpt-5.3-codex", extra_tools=None, **kwargs):
     if not POLLINATIONS_API_KEY:
         raise ValueError("Pollinations API key is not configured.")
         
-    url = "https://text.pollinations.ai/openai"
+    url = "https://gen.pollinations.ai/v1/chat/completions"
     messages = map_history_to_openai(history, system_prompt)
     
     payload = {
-        "model": "openai",
+        "model": model,
         "messages": messages,
-        "tools": get_openai_tools()
     }
-    
+    if enable_tools:
+        tools = get_openai_tools()
+        if extra_tools:
+            tools = list(tools) + [
+                {"type": "function", "function": t} for t in extra_tools
+                if t.get("name") not in {x["function"]["name"] for x in tools}
+            ]
+        payload["tools"] = tools
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {POLLINATIONS_API_KEY}"
     }
     
-    response = requests.post(url, headers=headers, json=payload, timeout=10)
-    if response.status_code != 200:
-        raise RuntimeError(f"Pollinations API failed with status {response.status_code}: {response.text}")
-        
-    return normalize_openai(response.json())
+    res = call_openai_compatible(url, headers, payload, stream_callback=stream_callback, timeout=30)
+    res["routed_model"] = model
+    return res
+
+
+def call_pollinations_codex(history, system_prompt=None, stream_callback=None, enable_tools=True, extra_tools=None, **kwargs):
+    return call_pollinations(history, system_prompt=system_prompt, stream_callback=stream_callback,
+                             enable_tools=enable_tools, model="openai/gpt-5.3-codex", extra_tools=extra_tools, **kwargs)
+
+
+def call_pollinations_astra(history, system_prompt=None, stream_callback=None, enable_tools=True, extra_tools=None, **kwargs):
+    return call_pollinations(history, system_prompt=system_prompt, stream_callback=stream_callback,
+                             enable_tools=enable_tools, model="openai/gpt-6-astra", extra_tools=extra_tools, **kwargs)
+
+
+def call_pollinations_sol(history, system_prompt=None, stream_callback=None, enable_tools=True, extra_tools=None, **kwargs):
+    return call_pollinations(history, system_prompt=system_prompt, stream_callback=stream_callback,
+                             enable_tools=enable_tools, model="openai/gpt-6.1-sol", extra_tools=extra_tools, **kwargs)
 
 def call_openai_compatible(url, headers, payload, stream_callback=None, timeout=25):
+    # `timeout` was used as connect AND read limit. A slow first token or a long tool-call
+    # payload (a whole file in one call) then failed over mid-answer. Keep connect short, read long.
+    if isinstance(timeout, (int, float)):
+        timeout = (min(10, timeout), max(timeout, 120))
     """Generic OpenAI SSE streaming wrapper supporting real-time token streaming and tool calls."""
     use_stream = stream_callback is not None
     payload["stream"] = use_stream
@@ -483,7 +587,8 @@ def call_openai_compatible(url, headers, payload, stream_callback=None, timeout=
                 "type": "tool_call",
                 "content": None,
                 "tool_name": tb["name"],
-                "tool_args": parsed_args
+                "tool_args": parsed_args,
+                "extra_calls": _collect_extra_calls(tool_calls_by_index),
             }
 
     return {
@@ -766,6 +871,7 @@ def _omniroute_once(history, system_prompt, stream_callback, enable_tools, model
                 "tool_name": tb["name"],
                 "tool_args": parsed_args,
                 "routed_model": routed,
+                "extra_calls": _collect_extra_calls(tool_calls_by_index),
             }
 
     if not tool_calls_by_index and accumulated_content:
@@ -799,7 +905,7 @@ def call_omniroute(history, system_prompt=None, stream_callback=None, enable_too
     )
 
 
-def call_opus_proxy(history, system_prompt=None, stream_callback=None, enable_tools=True, model="claude-fable-5", **kwargs):
+def call_opus_proxy(history, system_prompt=None, stream_callback=None, enable_tools=True, model="claude-fable-5", extra_tools=None, **kwargs):
     if not OPUS_PROXY_API_KEY:
         raise ValueError("Opus Proxy API key is not configured.")
 
@@ -812,6 +918,10 @@ def call_opus_proxy(history, system_prompt=None, stream_callback=None, enable_to
     }
     if enable_tools:
         payload["tools"] = get_openai_tools()
+    if extra_tools:
+        payload["tools"] = list(payload.get("tools", [])) + [
+            {"type": "function", "function": t} for t in extra_tools
+        ]
 
     headers = {
         "Content-Type": "application/json",
@@ -918,6 +1028,7 @@ def call_omegatech_secret(history, system_prompt=None, stream_callback=None, ena
             "content": None,
             "tool_name": tc["tool_name"],
             "tool_args": tc["tool_args"],
+            "extra_calls": tc.get("extra_calls", []),
             "routed_model": model,
         }
 

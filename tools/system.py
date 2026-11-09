@@ -4,6 +4,7 @@ import os
 import shutil
 import logging
 import re
+import shlex
 import signal
 import time
 
@@ -19,6 +20,18 @@ BLOCKLIST = [
     "dd if=/dev/zero of=/dev/",
 ]
 
+# Patterns that are never run, however they are spelled (flag order, ~, $HOME, globs...).
+BLOCK_PATTERNS = [
+    re.compile(r"\brm\s+(-\w+\s+)*-\w*[rRf]\w*\s+(-\w+\s+)*(/|~|\$HOME|/\*|~/\*|\.\./?|\*)(\s|$|/\*)"),
+    re.compile(r"--no-preserve-root"),
+    re.compile(r"\bmkfs(\.\w+)?\s+/dev/"),
+    re.compile(r"\bdd\b[^\n]*\bof=/dev/(sd|nvme|vd|mmcblk|hd)"),
+    re.compile(r">\s*/dev/(sd|nvme|vd|mmcblk|hd)"),
+    re.compile(r":\(\)\s*\{\s*:\|:&\s*\};:"),                     # fork bomb
+    re.compile(r"\bchmod\s+(-\w+\s+)*(777|a\+rwx)\s+(-\w+\s+)*/(\s|$)"),
+    re.compile(r"\bfind\s+(/|~|\$HOME)(\s|$)[^\n]*-delete"),
+]
+
 def set_confirmation_callback(cb):
     global confirmation_callback
     confirmation_callback = cb
@@ -26,15 +39,16 @@ def set_confirmation_callback(cb):
 def request_confirmation(message):
     if confirmation_callback:
         return confirmation_callback(message)
-    # Non-interactive daemon mode (systemd service / Telegram bridge)
+    # Non-interactive daemon mode (systemd service / Telegram bridge): nobody can answer,
+    # so default to DENY. Set HARVIS_AUTO_APPROVE=1 to opt in to the old behaviour.
     if not sys.stdin or not sys.stdin.isatty():
-        return True
+        return os.environ.get("HARVIS_AUTO_APPROVE", "") == "1"
     try:
         print(f"\n[CONFIRMATION REQUIRED] {message}")
         ans = input("Allow execution? (y/N): ").strip().lower()
         return ans in ("y", "yes")
     except (EOFError, KeyboardInterrupt, Exception):
-        return True
+        return False
 
 def is_destructive(cmd):
     cmd_lower = cmd.lower()
@@ -44,23 +58,28 @@ def is_destructive(cmd):
             return True
     return False
 
-def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_daemon: bool = False, **kwargs):
+def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_daemon: bool = False, cwd: str = None, **kwargs):
     cmd = cmd or command or kwargs.get("query") or kwargs.get("script")
     if not cmd:
         return {"success": False, "error": "shell_exec requires a cmd argument."}
 
     is_daemon = is_daemon or kwargs.get("daemon", False) or kwargs.get("background", False)
 
-    raw_timeout = timeout or kwargs.get("timeout") or 30
+    default_timeout = int(os.environ.get("HARVIS_SHELL_TIMEOUT", "120"))
+    max_timeout = int(os.environ.get("HARVIS_SHELL_MAX_TIMEOUT", "1800"))
+    raw_timeout = timeout or kwargs.get("timeout") or default_timeout
     try:
-        wait_time = max(3, min(600, int(raw_timeout)))
+        wait_time = max(3, min(max_timeout, int(raw_timeout)))
     except Exception:
-        wait_time = 30
+        wait_time = default_timeout
 
     # 1. Check against blocklist
     for blocked in BLOCKLIST:
         if blocked in cmd:
             return {"success": False, "error": "Command is blocked due to security policies."}
+    for pat in BLOCK_PATTERNS:
+        if pat.search(cmd):
+            return {"success": False, "error": "Command is blocked due to security policies (matches a destructive pattern)."}
     
     # 2. Check if destructive
     if is_destructive(cmd):
@@ -74,6 +93,13 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
     cmd_processed = cmd.strip()
 
     HARVIS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    run_dir = HARVIS_ROOT
+    workdir = cwd or kwargs.get("workdir") or kwargs.get("dir")
+    if workdir:
+        workdir = os.path.abspath(os.path.expanduser(str(workdir)))
+        if not os.path.isdir(workdir):
+            return {"success": False, "error": f"cwd does not exist or is not a directory: {workdir}"}
+        run_dir = workdir
 
     # 4. Handle Persistent Background Daemons & Servers (e.g. node server.js, npm start, vite, python app.py)
     is_bg_syntax = cmd_processed.endswith("&") or " & " in cmd_processed
@@ -98,14 +124,14 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
         daemon_id = f"daemon_{int(time.time())}"
         log_file = f"/tmp/{daemon_id}.log"
         clean_cmd = re.sub(r"\s*&\s*$", "", cmd_processed).strip()
-        daemon_cmd = f"nohup bash -c {repr(clean_cmd)} > {log_file} 2>&1 < /dev/null & echo $!"
+        daemon_cmd = f"nohup bash -c {shlex.quote(clean_cmd)} > {log_file} 2>&1 < /dev/null & echo $!"
         try:
             res = subprocess.run(
                 daemon_cmd,
                 shell=True,
                 capture_output=True,
                 text=True,
-                cwd=HARVIS_ROOT,
+                cwd=run_dir,
                 env=graphical_env(),
                 timeout=10,
                 executable="/bin/bash"
@@ -146,7 +172,7 @@ def shell_exec(cmd: str = None, command: str = None, timeout: int = None, is_dae
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd=HARVIS_ROOT,
+            cwd=run_dir,
             env=graphical_env(),
             start_new_session=True,    # Create a new session so killing pgid cleans all children
             executable="/bin/bash",

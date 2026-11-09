@@ -10,3 +10,5 @@ elevenlabs
 kokoro-onnx
 onnxruntime
 ollama
+python-telegram-bot
+psutil

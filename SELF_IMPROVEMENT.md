@@ -2795,3 +2795,424 @@ This s
 - **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
 - **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
 
+### [2026-11-08 01:38:11] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:38:11] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 01:38:45] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:38:45] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 01:39:05] `BOTTLENECK`: High response latency on provider 'omegatech_secret' (8.36s)
+- **Details:** Mode: normal, Model: claude-fable-5, History items: 46
+- **💡 Enhancement Recommendation:** Consider adjusting timeout or ranking provider 'omegatech_secret' lower if slowdown persists.
+
+### [2026-11-08 01:43:46] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:43:46] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 01:44:19] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:44:19] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 01:45:48] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:45:48] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 01:48:30] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:48:30] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 01:56:47] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 01:56:47] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:14:01] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:14:01] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:14:30] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:14:51] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:14:51] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:14:52] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 2296, Requested 4998. Please try again in 2.52s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:14:52] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 02:14:52] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 11.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:14:57] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:14:57] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:14:57] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:15:02] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 6129, Requested 4817. Please try again in 33.822857142s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:15:02] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 13.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:15:06] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:15:06] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:15:07] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:15:07] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 5484, Requested 4817. Please try again in 28.294285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:15:08] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 02:15:08] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 13.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:15:15] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:15:16] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:15:16] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:15:17] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 4362, Requested 4817. Please try again in 18.677142857s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:15:17] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 02:15:17] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 13.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:15:56] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:15:56] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:20:40] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:20:54] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3508, Requested 4246. Please try again in 6.462857142s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:20:54] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 02:20:54] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 10.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:20:59] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:20:59] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:20:59] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 10.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:21:08] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:21:08] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:21:30] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:21:34] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 4403, Requested 5089. Please try again in 21.36s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:21:34] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:21:39] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:21:39] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:21:40] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:21:40] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3641, Requested 5089. Please try again in 14.828571428s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:21:41] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 02:21:41] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:21:48] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:21:48] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 02:21:49] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 02:21:49] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 2573, Requested 5089. Please try again in 5.674285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 02:21:50] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 02:21:50] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 20.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 02:22:07] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 02:22:07] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 09:09:36] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 09:09:36] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 15:45:05] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 15:45:05] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 15:45:10] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-08T13:45:09.578Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 15:49:45] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 15:49:45] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 15:49:49] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-08T13:49:49.081Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 15:49:53] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 4180, Requested 4432. Please try again in 13.817142857s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 15:49:54] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 15:49:54] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** Session: default_session. History count: 45.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 15:50:33] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3861, Requested 4493. Please try again in 11.605714285s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-08 15:50:34] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-08 15:50:34] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** Session: default_session. History count: 44.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-08 15:50:54] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-08 15:51:18] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: qwen.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-08 15:51:22] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-08T13:51:22.032Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-08 15:51:22] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** Session: default_session. History count: 44.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-09 08:38:59] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-09 08:39:00] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-09 08:39:01] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-09T06:39:01.380Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-09 08:39:34] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-09 08:39:34] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** HTTPConnectionPool(host='localhost', port=20128): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError("HTTPConnection(host='localhost', port=20128): Failed to establish a new connection: [Errno 111] Connection refused"))
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-09 08:39:35] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (500): {
+  "statusCode": 500,
+  "success": false,
+  "source": "Omegatech",
+  "error": "Billing verification failed. Please check your payment method.",
+  "timestamp": "2026-11-09T06:39:34.935Z",
+  "attributi
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-09 08:39:46] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3762, Requested 4366. Please try again in 9.668571428s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-09 08:39:47] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-09 08:39:47] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** Session: default_session. History count: 45.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+

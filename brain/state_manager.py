@@ -27,7 +27,7 @@ class TaskManager:
         self.user_id = user_id
         self.dir = os.path.join(tasks_dir, task_id)
         os.makedirs(self.dir, exist_ok=True)
-        self.plan_path = os.path.join(self.dir, "plan.md")
+        self.plan_path = os.path.join(self.dir, "task.md")
         self.notes_path = os.path.join(self.dir, "notes.md")
         self.state_path = os.path.join(self.dir, "state.json")
 
@@ -106,8 +106,11 @@ class TaskManager:
     def append_trace(self, record: dict):
         """Appends one JSON line per step to trace.jsonl (full, untruncated history)."""
         record = dict(record, ts=time.time())
-        with open(os.path.join(self.dir, "trace.jsonl"), "a", encoding="utf-8") as f:
-            f.write(json.dumps(record, default=str) + "\n")
+        try:
+            with open(os.path.join(self.dir, "trace.jsonl"), "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, default=str) + "\n")
+        except OSError:
+            pass  # a full disk or bad permission on the trace must not kill the task it is recording
 
     def read_notes(self) -> str:
         """Reads notes.md."""
