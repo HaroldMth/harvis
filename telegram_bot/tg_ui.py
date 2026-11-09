@@ -490,6 +490,24 @@ def _short(name: str, args: dict) -> str:
 
 
 _CHECK = re.compile(r"^\s*[-*+]\s+\[([ xX])\]\s+(.*)$", re.M)
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]|\r")
+
+
+def clean_ansi(text: str) -> str:
+    """Strip ANSI escape sequences and carriage returns from terminal output."""
+    if not text:
+        return ""
+    return _ANSI_RE.sub("", text)
+
+
+def render_progress_bar(done: int, total: int, width: int = 10) -> str:
+    """Render a visual ASCII/Unicode progress bar like [████░░░░░░] 40%."""
+    if total <= 0:
+        return f"[{'░' * width}] 0%"
+    pct = min(1.0, max(0.0, done / total))
+    filled = int(round(pct * width))
+    empty = max(0, width - filled)
+    return f"[{'█' * filled}{'░' * empty}] {int(pct * 100)}%"
 
 
 class Status:
@@ -542,9 +560,10 @@ class Status:
         more = f"<i>+{hidden} earlier steps</i>\n" if hidden > 0 else ""
         plan = ""
         if self.plan_total:
-            plan = f"📋 <b>{self.plan_done}/{self.plan_total}</b>"
+            bar = render_progress_bar(self.plan_done, self.plan_total)
+            plan = f"📋 {bar} (<b>{self.plan_done}/{self.plan_total}</b>)"
             if self.plan_next:
-                plan += f" · {esc(trunc(self.plan_next, 70))}"
+                plan += f"\n⏳ <b>Next:</b> <code>{esc(trunc(self.plan_next, 60))}</code>"
             plan += "\n\n"
         body = f"{more}{tl}\n\n" if tl else ""
         return f"{self.header()}\n\n{plan}{body}<i>{esc(note)}</i>"
@@ -591,25 +610,6 @@ def render_log(log: list) -> str:
 
 
 # ─── Live Terminal & Dual-Layer Bubble Renderers ─────────────────────────────
-
-_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]|\r")
-
-
-def clean_ansi(text: str) -> str:
-    """Strip ANSI escape sequences and carriage returns from terminal output."""
-    if not text:
-        return ""
-    return _ANSI_RE.sub("", text)
-
-
-def render_progress_bar(done: int, total: int, width: int = 10) -> str:
-    """Render a visual ASCII/Unicode progress bar like [████░░░░░░] 40%."""
-    if total <= 0:
-        return f"[{'░' * width}] 0%"
-    pct = min(1.0, max(0.0, done / total))
-    filled = int(round(pct * width))
-    empty = max(0, width - filled)
-    return f"[{'█' * filled}{'░' * empty}] {int(pct * 100)}%"
 
 
 def render_task_dashboard(

@@ -287,3 +287,45 @@ def test_malformed_html_is_sanitized_before_it_leaves():
         await io.send(t, "<b>a<i>b</b></i> <foo> & x")
         assert not problems(t.calls[0][2])
     asyncio.run(go())
+
+
+def test_progress_bar_and_clean_ansi():
+    assert ui.render_progress_bar(0, 10) == "[░░░░░░░░░░] 0%"
+    assert ui.render_progress_bar(5, 10) == "[█████░░░░░] 50%"
+    assert ui.render_progress_bar(10, 10) == "[██████████] 100%"
+    
+    ansi_dirty = "\x1b[32mSuccess\x1b[0m\r\nDone"
+    assert ui.clean_ansi(ansi_dirty) == "Success\nDone"
+
+
+def test_dual_layer_renderers_produce_valid_telegram_html():
+    # 1. Command bubble
+    bubble = ui.render_command_bubble("npm install", 2.3, "added 42 packages", is_running=False, exit_code=0, cwd="/home/harold/project")
+    assert not problems(bubble)
+    assert "exit 0" in bubble
+
+    # 2. Task dashboard
+    plan = "- [x] Setup environment\n- [ ] Install deps\n- [ ] Run build"
+    dash = ui.render_task_dashboard("Build Web App", plan_text=plan, elapsed=12.5, active_action="npm install")
+    assert not problems(dash)
+    assert "1/3 completed" in dash
+
+    # 3. Shell summary card
+    history = [
+        {"cmd": "ls -la", "exit_code": 0, "took": 0.1, "snippet": "total 4"},
+        {"cmd": "git status", "exit_code": 0, "took": 0.2, "snippet": "clean"},
+    ]
+    summary = ui.render_shell_summary("/home/harold", history, 45.2)
+    assert not problems(summary)
+    assert "Shell Session Closed" in summary
+    assert "Commands Executed (2)" in summary
+
+
+def test_status_render_includes_progress_bar_when_plan_present():
+    s = ui.Status("Default", "🛡️")
+    s.set_plan("- [x] Step 1\n- [ ] Step 2")
+    rendered = s.render("Thinking…")
+    assert not problems(rendered)
+    assert "1/2" in rendered
+    assert "█" in rendered
+

@@ -9,20 +9,19 @@ Simplified 2-Tier Engine Architecture:
 MODES = ("normal", "fast")
 DEFAULT_MODE = "normal"
 
-DEFAULT_ENGINE = "openai/gpt-5.3-codex"
+DEFAULT_ENGINE = "gemini-3.5-flash-lite"
 DEFAULT_FALLBACKS = [
-    "openai/gpt-6-astra",
-    "openai/gpt-6.1-sol",
+    "gemini-3.1-flash-lite",
     "gemini-3.5-flash",
+    "openai/gpt-5.3-codex",
+    "openai/gpt-6-astra",
     "qwen/qwen3.8-27b",
-    "openai/gpt-oss-120b",
 ]
 
-FAST_ENGINE = "openai/gpt-6.1-sol"
+FAST_ENGINE = "gemini-3.5-flash-lite"
 FAST_FALLBACKS = [
+    "gemini-3.1-flash-lite",
     "qwen/qwen3.8-27b",
-    "gemini-3.5-flash",
-    "openai/gpt-oss-120b",
     "codestral-latest",
 ]
 

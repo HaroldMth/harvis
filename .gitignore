@@ -13,3 +13,6 @@ whatsapp/auth_info_baileys/
 
 *.log
 .harvis/
+my_app/
+db/store.db
+db/busy_state.json

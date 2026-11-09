@@ -535,9 +535,16 @@ class HarnessRunner:
                                      f"change arguments, try another approach, or finish")
                     note = "[harness: " + ", ".join(facts) + "]"
 
+                    assistant_payload = {
+                        "type": "tool_call",
+                        "tool_name": tool_name,
+                        "tool_args": tool_args
+                    }
+                    if response.get("thought_signature"):
+                        assistant_payload["thought_signature"] = response["thought_signature"]
+
                     history.append({"role": "assistant",
-                                    "content": json.dumps({"type": "tool_call", "tool_name": tool_name,
-                                                           "tool_args": tool_args})})
+                                    "content": json.dumps(assistant_payload)})
                     history.append({"role": "tool",
                                     "content": f"{_clip(raw_text, settings.OBS_CHARS)}\n{note}"})
 

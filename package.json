@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@heyputer/puter.js": "^2.6.0"
+    "@heyputer/puter.js": "^2.6.0",
+    "localtunnel": "^2.0.2"
   }
 }

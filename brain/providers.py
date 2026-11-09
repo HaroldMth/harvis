@@ -74,19 +74,29 @@ def map_history_to_gemini(history):
         elif role == "assistant":
             if is_json and isinstance(parsed_content, dict):
                 if parsed_content.get("type") == "tool_call" and parsed_content.get("tool_name") is not None:
-                    part = {
-                        "functionCall": {
-                            "name": parsed_content["tool_name"],
-                            "args": parsed_content.get("tool_args", {})
+                    # Gemini requires thoughtSignature on functionCall parts.
+                    # If absent (e.g. from prior model turn), format as text to prevent 400 INVALID_ARGUMENT.
+                    sig = parsed_content.get("thought_signature")
+                    if sig:
+                        part = {
+                            "functionCall": {
+                                "name": parsed_content["tool_name"],
+                                "args": parsed_content.get("tool_args", {})
+                            },
+                            "thoughtSignature": sig
                         }
-                    }
-                    if parsed_content.get("thought_signature"):
-                        part["thoughtSignature"] = parsed_content["thought_signature"]
-                    contents.append({
-                        "role": "model",
-                        "parts": [part]
-                    })
-                    awaiting_tool_response = True
+                        contents.append({
+                            "role": "model",
+                            "parts": [part]
+                        })
+                        awaiting_tool_response = True
+                    else:
+                        tool_desc = f"Calling tool {parsed_content['tool_name']} with args {json.dumps(parsed_content.get('tool_args', {}))}"
+                        contents.append({
+                            "role": "model",
+                            "parts": [{"text": tool_desc}]
+                        })
+                        awaiting_tool_response = False
                 else:
                     contents.append({"role": "model", "parts": [{"text": parsed_content.get("content", "")}]})
                     awaiting_tool_response = False
@@ -104,6 +114,15 @@ def map_history_to_gemini(history):
                             "response": {"result": parsed_content.get("result", "")}
                         }
                     }]
+                })
+                awaiting_tool_response = False
+            else:
+                raw_out = content
+                if is_json and isinstance(parsed_content, dict):
+                    raw_out = parsed_content.get("result", content)
+                contents.append({
+                    "role": "user",
+                    "parts": [{"text": f"[Tool Output]: {str(raw_out)[:4000]}"}]
                 })
                 awaiting_tool_response = False
     return contents
@@ -377,7 +396,7 @@ def call_gemini(history, system_prompt=None, stream_callback=None, **kwargs):
     if not GEMINI_API_KEY:
         raise ValueError("Gemini API key is not configured.")
         
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={GEMINI_API_KEY}"
+    models_to_try = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"]
     contents = map_history_to_gemini(history)
     
     payload = {
@@ -389,47 +408,61 @@ def call_gemini(history, system_prompt=None, stream_callback=None, **kwargs):
     }
     
     headers = {"Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, json=payload, timeout=20)
-    
-    if response.status_code != 200:
-        raise RuntimeError(f"Gemini API failed with status {response.status_code}: {response.text}")
-        
-    res_json = response.json()
-    try:
-        parts = res_json["candidates"][0]["content"]["parts"]
-    except (KeyError, IndexError):
-        raise RuntimeError(f"Unexpected Gemini response structure: {res_json}")
-        
-    # Check for functionCall
-    for part in parts:
-        if "functionCall" in part:
-            return {
-                "type": "tool_call",
-                "content": None,
-                "tool_name": part["functionCall"]["name"],
-                "tool_args": part["functionCall"].get("args", {}),
-                "thought_signature": part.get("thoughtSignature"),
-                "routed_model": "gemini-3.5-flash"
-            }
-            
-    # Fallback to text
-    for part in parts:
-        if "text" in part:
-            text_content = part["text"]
-            if stream_callback:
+    last_err = None
+
+    for model_name in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=20)
+            if response.status_code == 200:
+                res_json = response.json()
                 try:
-                    stream_callback(text_content)
-                except Exception:
-                    pass
-            return {
-                "type": "text",
-                "content": text_content,
-                "tool_name": None,
-                "tool_args": None,
-                "routed_model": "gemini-3.5-flash"
-            }
-            
-    return {"type": "text", "content": "", "tool_name": None, "tool_args": None, "routed_model": "gemini-3.5-flash"}
+                    parts = res_json["candidates"][0]["content"]["parts"]
+                except (KeyError, IndexError):
+                    raise RuntimeError(f"Unexpected Gemini response structure: {res_json}")
+                    
+                # Check for functionCall
+                for part in parts:
+                    if "functionCall" in part:
+                        return {
+                            "type": "tool_call",
+                            "content": None,
+                            "tool_name": part["functionCall"]["name"],
+                            "tool_args": part["functionCall"].get("args", {}),
+                            "thought_signature": part.get("thoughtSignature"),
+                            "routed_model": model_name
+                        }
+                        
+                # Fallback to text
+                for part in parts:
+                    if "text" in part:
+                        text_content = part["text"]
+                        if stream_callback:
+                            try:
+                                stream_callback(text_content)
+                            except Exception:
+                                pass
+                        return {
+                            "type": "text",
+                            "content": text_content,
+                            "tool_name": None,
+                            "tool_args": None,
+                            "routed_model": model_name
+                        }
+                        
+                return {"type": "text", "content": "", "tool_name": None, "tool_args": None, "routed_model": model_name}
+            elif response.status_code in (429, 503):
+                logger.warning(f"Gemini {model_name} returned status {response.status_code}, trying next model in chain...")
+                last_err = RuntimeError(f"Gemini API failed with status {response.status_code}: {response.text}")
+                continue
+            else:
+                raise RuntimeError(f"Gemini API failed with status {response.status_code}: {response.text}")
+        except requests.exceptions.Timeout:
+            logger.warning(f"Gemini {model_name} timed out, trying next model in chain...")
+            last_err = RuntimeError(f"Gemini {model_name} timed out")
+            continue
+
+    raise last_err or RuntimeError("All Gemini models exhausted")
 
 def call_pollinations(history, system_prompt=None, stream_callback=None, enable_tools=True, model="openai/gpt-5.3-codex", extra_tools=None, **kwargs):
     if not POLLINATIONS_API_KEY:
@@ -457,6 +490,9 @@ def call_pollinations(history, system_prompt=None, stream_callback=None, enable_
     }
     
     res = call_openai_compatible(url, headers, payload, stream_callback=stream_callback, timeout=30)
+    text = (res.get("content") or "").strip()
+    if "doesn't have enough credits" in text or "enter.pollinations.ai" in text or "top up" in text.lower():
+        raise RuntimeError(f"Pollinations credit balance exhausted: {text}")
     res["routed_model"] = model
     return res
 
@@ -545,6 +581,10 @@ def call_openai_compatible(url, headers, payload, stream_callback=None, timeout=
                             break
 
                 accumulated_content += content_chunk
+                lower_acc = accumulated_content.lower()
+                if "doesn't have enough credits" in lower_acc or "enter.pollinations.ai" in lower_acc or "top-up?ref=" in lower_acc:
+                    raise RuntimeError(f"Provider credit balance exhausted: {accumulated_content.strip()}")
+
                 if stream_callback:
                     try:
                         stream_callback(content_chunk)

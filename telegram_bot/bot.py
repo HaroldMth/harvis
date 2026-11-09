@@ -184,6 +184,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <code>/mode</code> show the active engine\n"
         "• <code>/stop</code> abort the current run and clear the queue (new messages while I work are queued, not cancelling)\n"
         "• <code>/reset</code> clear active session memory\n"
+        "• <code>/shell</code> persistent bash shell mode (or <code>/shell &lt;cmd&gt;</code>)\n"
         "• <code>/health</code> system health audit\n\n"
         "Just type anything to command HARVIS."
     )
@@ -417,6 +418,7 @@ class ShellSession:
     started_at: float = dataclasses.field(default_factory=time.monotonic)
 
 SHELL_SESSIONS: dict[int, ShellSession] = {}  # user_id -> ShellSession
+ACTIVE_SHELL_PROCS: dict = {}  # user_id -> asyncio.subprocess.Process
 
 
 MODE_CONFIG = {
@@ -484,11 +486,18 @@ async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
     Throttles Telegram edits to once per 1.5s to stay inside flood limits.
     Strips ANSI escape codes before display.
     """
+    user = update.effective_user
     t0 = time.monotonic()
     output_buf = []
+
+    kill_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🛑 Kill Process", callback_data=f"kill_sh_{user.id}")]
+    ]) if user else None
+
     bubble_msg = await send_html(
         update.message,
-        ui.render_command_bubble(cmd, 0.0, "", is_running=True, cwd=cwd)
+        ui.render_command_bubble(cmd, 0.0, "", is_running=True, cwd=cwd),
+        reply_markup=kill_kb
     )
     last_edit = [time.monotonic()]
 
@@ -498,7 +507,8 @@ async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
             elapsed = time.monotonic() - t0
             await _safe_edit(
                 bubble_msg,
-                ui.render_command_bubble(cmd, elapsed, joined, is_running=True, cwd=cwd)
+                ui.render_command_bubble(cmd, elapsed, joined, is_running=True, cwd=cwd),
+                reply_markup=kill_kb
             )
         last_edit[0] = time.monotonic()
 
@@ -511,6 +521,8 @@ async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
             cwd=cwd,
             executable="/bin/bash",
         )
+        if user:
+            ACTIVE_SHELL_PROCS[user.id] = proc
 
         async for raw_line in proc.stdout:
             line = raw_line.decode("utf-8", errors="replace")
@@ -523,15 +535,29 @@ async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
     except Exception as e:
         output_buf.append(f"\n[Error: {e}]")
         exit_code = -1
+    finally:
+        if user:
+            ACTIVE_SHELL_PROCS.pop(user.id, None)
 
     elapsed = time.monotonic() - t0
     full_output = ui.clean_ansi("".join(output_buf)).strip()
+
+    # If output exceeds 16 lines, provide an interactive download button
+    done_kb = None
+    lines_count = len(full_output.splitlines())
+    if lines_count > 16:
+        log_key = f"shlog_{uuid.uuid4().hex[:8]}"
+        ui.TASK_LOGS[log_key] = f"$ {cmd}\n(cwd: {cwd}, exit: {exit_code}, took: {elapsed:.1f}s)\n\n{full_output}"
+        done_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"📋 Full Output ({lines_count} lines)", callback_data=log_key)]
+        ])
 
     # Seal the bubble with final status
     if bubble_msg:
         await _safe_edit(
             bubble_msg,
-            ui.render_command_bubble(cmd, elapsed, full_output, is_running=False, exit_code=exit_code, cwd=cwd)
+            ui.render_command_bubble(cmd, elapsed, full_output, is_running=False, exit_code=exit_code, cwd=cwd),
+            reply_markup=done_kb
         )
 
     return exit_code, full_output, elapsed, bubble_msg
@@ -544,18 +570,31 @@ async def exit_shell_mode(user_id: int, update: Update):
         return
 
     duration = time.monotonic() - sess.started_at
-
-    # Build the final directory (track last cd)
     final_cwd = sess.cwd
 
-    # 1. Delete all bubble messages (command output bubbles)
+    # Update active session directory so HARVIS inherits it
+    try:
+        active_sid = get_active_session(user_id)
+        if active_sid and active_sid != "general":
+            update_session(active_sid, active_dir=final_cwd)
+    except Exception as e:
+        logger.warning(f"Could not persist active session cwd: {e}")
+
+    # 1. Post single consolidated summary card directly to chat
+    summary = ui.render_shell_summary(final_cwd, sess.history, duration)
+    try:
+        await update.effective_chat.send_message(text=summary, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Failed to send shell summary: {e}")
+
+    # 2. Delete all intermediate bubble messages (banner + command output bubbles)
     for msg in sess.bubble_msg_ids:
         try:
             await msg.delete()
         except Exception:
             pass
 
-    # 2. Delete user's raw command messages
+    # 3. Delete user's raw command messages to keep the chat clean
     for msg_id in sess.user_msg_ids:
         try:
             await update.effective_chat.bot.delete_message(
@@ -565,9 +604,19 @@ async def exit_shell_mode(user_id: int, update: Update):
         except Exception:
             pass
 
-    # 3. Post single consolidated summary card
-    summary = ui.render_shell_summary(final_cwd, sess.history, duration)
-    await send_html(update.message, summary)
+
+async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /exit command to exit shell mode cleanly."""
+    user = update.effective_user
+    if not is_user_allowed(user.id, user.username):
+        return
+    if user.id in SHELL_SESSIONS:
+        sess = SHELL_SESSIONS[user.id]
+        if update.message:
+            sess.user_msg_ids.append(update.message.message_id)
+        await exit_shell_mode(user.id, update)
+    else:
+        await send_html(update.message, "ℹ️ <i>Not in shell mode. Type <code>/shell</code> to activate.</i>")
 
 
 async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -575,7 +624,7 @@ async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     /shell [on|off|<cmd>]
     /sh    [on|off|<cmd>]
 
-    - /shell          → toggle shell mode on
+    - /shell          → toggle shell mode on/off
     - /shell on       → activate shell mode
     - /shell off      → exit shell mode and post summary
     - /shell <cmd>    → one-shot command (no mode change)
@@ -588,17 +637,18 @@ async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args_text = " ".join(context.args).strip() if context.args else ""
     lower_args = args_text.lower()
 
-    # Exit shell mode
-    if lower_args in ("off", "exit", "quit", "stop", "") and user.id in SHELL_SESSIONS:
-        # Delete /shell off message itself
-        try:
-            await update.message.delete()
-        except Exception:
-            pass
-        await exit_shell_mode(user.id, update)
+    # Exit shell mode if requested or if already active and user called /shell
+    if lower_args in ("off", "exit", "quit", "stop") or (not lower_args and user.id in SHELL_SESSIONS):
+        if user.id in SHELL_SESSIONS:
+            sess = SHELL_SESSIONS[user.id]
+            if update.message:
+                sess.user_msg_ids.append(update.message.message_id)
+            await exit_shell_mode(user.id, update)
+        else:
+            await send_html(update.message, "ℹ️ <i>Shell mode was not active.</i>")
         return
 
-    # Activate shell mode (no command inline)
+    # Activate shell mode
     if lower_args in ("on", ""):
         active_sid = get_active_session(user.id)
         default_cwd = "/home/harold"
@@ -607,18 +657,23 @@ async def shell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if info and info.get("active_dir") and os.path.isdir(info["active_dir"]):
                 default_cwd = info["active_dir"]
 
-        SHELL_SESSIONS[user.id] = ShellSession(cwd=default_cwd)
-        try:
-            await update.message.delete()
-        except Exception:
-            pass
-        await send_html(
-            update.message,
+        sess = ShellSession(cwd=default_cwd)
+        SHELL_SESSIONS[user.id] = sess
+        if update.message:
+            sess.user_msg_ids.append(update.message.message_id)
+
+        banner_text = (
             f"🖥 <b>Shell Mode ON</b>\n"
             f"📁 <code>{ui.esc(default_cwd)}</code>\n\n"
             f"<i>Every message is now a bash command.\n"
             f"Type <code>/shell off</code> or <code>/exit</code> to return to HARVIS.</i>"
         )
+        try:
+            banner_msg = await update.effective_chat.send_message(text=banner_text, parse_mode=ParseMode.HTML)
+            if banner_msg:
+                sess.bubble_msg_ids.append(banner_msg)
+        except Exception as e:
+            logger.error(f"Failed to send shell banner: {e}")
         return
 
     # One-shot mode: /shell <cmd> without entering shell mode
@@ -659,46 +714,63 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user.id in SHELL_SESSIONS:
         sess = SHELL_SESSIONS[user.id]
         cmd = prompt_text.strip()
+        sess.user_msg_ids.append(update.message.message_id)
 
-        # /exit or /shell off inside shell mode triggers graceful exit
-        if cmd.lower() in ("/exit", "/shell off", "/shell stop", "/shell quit"):
-            try:
-                await update.message.delete()
-            except Exception:
-                pass
+        # /exit or /shell off or exit inside shell mode triggers graceful exit
+        if cmd.lower() in ("/exit", "/shell off", "/shell stop", "/shell quit", "exit", "quit"):
             await exit_shell_mode(user.id, update)
             return
 
-        # Track user message ID for cleanup later
-        sess.user_msg_ids.append(update.message.message_id)
-
-        # Handle `cd <path>` as a built-in to persist cwd
-        cd_match = re.match(r"^\s*cd\s+(.+)$", cmd)
+        # Handle `cd <path>` as a built-in to persist cwd across commands
+        cd_match = re.match(r"^\s*cd(?:\s+(.*))?$", cmd)
         if cd_match:
-            new_dir = cd_match.group(1).strip().replace("~", "/home/harold")
-            new_dir = os.path.abspath(os.path.join(sess.cwd, new_dir))
+            raw_dest = (cd_match.group(1) or "").strip()
+            if not raw_dest or raw_dest == "~":
+                new_dir = "/home/harold"
+            else:
+                dest = raw_dest.replace("~", "/home/harold")
+                new_dir = os.path.abspath(os.path.join(sess.cwd, dest))
             if os.path.isdir(new_dir):
                 sess.cwd = new_dir
                 sess.history.append({"cmd": cmd, "exit_code": 0, "took": 0.0, "snippet": f"→ {new_dir}"})
-                # Quick confirmation bubble (auto-deletes after 2s via edit trick)
                 cd_bubble = await send_html(
                     update.message,
                     ui.render_command_bubble(cmd, 0.0, f"→ {new_dir}", is_running=False, exit_code=0, cwd=new_dir)
                 )
-                sess.bubble_msg_ids.append(cd_bubble)
+                if cd_bubble:
+                    sess.bubble_msg_ids.append(cd_bubble)
+                    while len(sess.bubble_msg_ids) > 3:
+                        old = sess.bubble_msg_ids.pop(0)
+                        try:
+                            await old.delete()
+                        except Exception:
+                            pass
             else:
                 err_bubble = await send_html(
                     update.message,
-                    ui.render_command_bubble(cmd, 0.0, f"cd: no such directory: {new_dir}", is_running=False, exit_code=1, cwd=sess.cwd)
+                    ui.render_command_bubble(cmd, 0.0, f"cd: no such directory: {raw_dest}", is_running=False, exit_code=1, cwd=sess.cwd)
                 )
-                sess.bubble_msg_ids.append(err_bubble)
-                sess.history.append({"cmd": cmd, "exit_code": 1, "took": 0.0, "snippet": f"no such dir: {new_dir}"})
+                if err_bubble:
+                    sess.bubble_msg_ids.append(err_bubble)
+                    while len(sess.bubble_msg_ids) > 3:
+                        old = sess.bubble_msg_ids.pop(0)
+                        try:
+                            await old.delete()
+                        except Exception:
+                            pass
+                sess.history.append({"cmd": cmd, "exit_code": 1, "took": 0.0, "snippet": f"no such dir: {raw_dest}"})
             return
 
         # Execute the command with live streaming
         exit_code, full_output, elapsed, bubble_msg = await shell_exec_live(cmd, sess.cwd, update)
         if bubble_msg:
             sess.bubble_msg_ids.append(bubble_msg)
+            while len(sess.bubble_msg_ids) > 3:
+                old = sess.bubble_msg_ids.pop(0)
+                try:
+                    await old.delete()
+                except Exception:
+                    pass
         snippet = full_output[:120].replace("\n", " ") if full_output else ""
         sess.history.append({"cmd": cmd, "exit_code": exit_code, "took": round(elapsed, 1), "snippet": snippet})
         return
@@ -859,7 +931,12 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 raise RuntimeError("Cancelled by user")
             if not chunk:
                 return
-            stream_buffer[0] = (stream_buffer[0] + chunk)[-200_000:]
+            temp = stream_buffer[0] + chunk
+            lower_temp = temp.lower()
+            if "doesn't have enough credits" in lower_temp or "enter.pollinations.ai" in lower_temp or "top-up?ref=" in lower_temp:
+                stream_buffer[0] = ""
+                return
+            stream_buffer[0] = temp[-200_000:]
             now = time.monotonic()
             if now - last_push[0] < 1.2:
                 return
@@ -870,7 +947,9 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
         # ── agent progress: plain function, no awaits, never blocks the agent ──
         def on_progress(ev):
             kind = ev.get("type")
-            if kind == "thinking":
+            if kind == "init":
+                status.set_plan(ev.get("plan"))
+            elif kind == "thinking":
                 stream_buffer[0] = ""
                 view.update(note="Thinking…", stream="", think="")
             elif kind == "acting":
@@ -882,6 +961,12 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
                               (ev.get("output") or "").strip())
                 status.set_plan(ev.get("plan"))
                 view["note"] = "Thinking…"
+            elif kind == "catchup":
+                status.set_plan(ev.get("plan"))
+                msg = (ev.get("text") or "").strip()
+                if msg:
+                    first_line = msg.splitlines()[0][:90]
+                    view.update(note=f"💬 {first_line}", stream="", think="")
             refresh()
 
         async def ticker():
@@ -997,6 +1082,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
 
     data = query.data
+    if data.startswith("kill_sh_"):
+        target_id = int(data.replace("kill_sh_", ""))
+        proc = ACTIVE_SHELL_PROCS.get(target_id)
+        if proc and proc.returncode is None:
+            try:
+                proc.kill()
+                await query.answer("🛑 Terminating shell command...", show_alert=True)
+            except Exception:
+                await query.answer("Could not terminate command.", show_alert=False)
+        else:
+            await query.answer("Command already finished.", show_alert=False)
+        return
+
+    if data.startswith("shlog_"):
+        log_text = ui.TASK_LOGS.get(data)
+        if not log_text:
+            await query.answer("That output log has expired.", show_alert=False)
+            return
+        await query.answer()
+        buf = io.BytesIO(log_text.encode("utf-8"))
+        buf.name = "command_output.txt"
+        await query.message.reply_document(buf, caption="📋 Full Command Output")
+        return
+
     if data.startswith("cancel_gen_"):
         target_id = int(data.replace("cancel_gen_", ""))
         cancel_evt = ACTIVE_CANCELS.get(target_id)
@@ -1170,7 +1279,7 @@ def main():
     app.add_handler(CommandHandler("edith", edith_command))
     app.add_handler(CommandHandler("shell", shell_command))
     app.add_handler(CommandHandler("sh", shell_command))
-    app.add_handler(CommandHandler("exit", lambda u, c: exit_shell_mode(u.effective_user.id, u)))
+    app.add_handler(CommandHandler("exit", exit_command))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler), group=1)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler), group=1)
