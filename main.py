@@ -296,13 +296,8 @@ def main():
     ipc_thread = threading.Thread(target=ipc_listener_loop, daemon=True)
     ipc_thread.start()
 
-    # Start Ambient Wake Word Listener ("HARVIS" / "Hey HARVIS" / "FRIDAY" / "EDITH")
-    try:
-        from audio.wakeword import WakeWordListener
-        ww_listener = WakeWordListener(callback=on_wakeword_detected)
-        ww_listener.start()
-    except Exception as e:
-        logger.warning(f"Could not start Ambient Wake Word listener: {e}")
+    # Ambient wake word disabled to preserve battery and keep CPU idle
+    ww_listener = None
     
     try:
         gui.app.exec()
