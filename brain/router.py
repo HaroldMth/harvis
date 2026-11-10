@@ -35,7 +35,6 @@ DEEP_PROVIDERS = [
     {"name": "pollinations_codex", "func": call_pollinations_codex},
     {"name": "pollinations_astra", "func": call_pollinations_astra},
     {"name": "pollinations_sol",   "func": call_pollinations_sol},
-    {"name": "omegatech",          "func": call_omegatech},
     {"name": "groq",               "func": call_groq},
     {"name": "mistral",            "func": call_mistral},
     {"name": "opus_proxy",         "func": call_opus_proxy},
