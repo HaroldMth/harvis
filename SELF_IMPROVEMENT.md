@@ -4277,3 +4277,232 @@ If this isn’t your Pollinations account, contact whoever runs the app or servi
 - **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
 - **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
 
+### [2026-11-09 18:51:35] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Unexpected Gemini response structure: {'candidates': [{'content': {}, 'finishReason': 'UNEXPECTED_TOOL_CALL', 'index': 0}], 'usageMetadata': {'promptTokenCount': 13032, 'totalTokenCount': 13032, 'cachedContentTokenCount': 9773, 'promptTokensDetails': [{'modality': 'TEXT', 'tokenCount': 13032}], 'cacheTokensDetails': [{'modality': 'TEXT', 'tokenCount': 9773}], 'serviceTier': 'standard'}, 'modelVersion': 'gemini-3.5-flash-lite', 'responseId': 'Fvrxat70Br2Z3boP4baGIQ'}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-11-09 18:51:36] `PROVIDER_FAIL`: Provider 'pollinations_codex' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_codex'.
+
+### [2026-11-09 18:51:38] `PROVIDER_FAIL`: Provider 'pollinations_astra' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_astra'.
+
+### [2026-11-09 18:51:39] `PROVIDER_FAIL`: Provider 'pollinations_sol' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_sol'.
+
+### [2026-11-09 18:51:43] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 4256, Requested 5157. Please try again in 20.682857142s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-09 18:51:44] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-09 18:51:47] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-09 18:51:51] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: qwen.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-09 18:51:52] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (431): 
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-09 18:51:52] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 70.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-09 18:59:07] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Unexpected Gemini response structure: {'candidates': [{'content': {}, 'finishReason': 'UNEXPECTED_TOOL_CALL', 'index': 0}], 'usageMetadata': {'promptTokenCount': 11401, 'totalTokenCount': 11401, 'cachedContentTokenCount': 7753, 'promptTokensDetails': [{'modality': 'TEXT', 'tokenCount': 11401}], 'cacheTokensDetails': [{'modality': 'TEXT', 'tokenCount': 7753}], 'serviceTier': 'standard'}, 'modelVersion': 'gemini-3.5-flash-lite', 'responseId': '2vvxarPxNYv_vdIP0q7KiQ4'}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-11-09 18:59:09] `PROVIDER_FAIL`: Provider 'pollinations_codex' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_codex'.
+
+### [2026-11-09 18:59:10] `PROVIDER_FAIL`: Provider 'pollinations_astra' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_astra'.
+
+### [2026-11-09 18:59:11] `PROVIDER_FAIL`: Provider 'pollinations_sol' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_sol'.
+
+### [2026-11-09 18:59:16] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3645, Requested 4233. Please try again in 7.525714285s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-09 18:59:17] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-09 18:59:20] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-09 19:44:00] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Gemini gemini-3.5-flash timed out
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-11-09 19:44:03] `PROVIDER_FAIL`: Provider 'pollinations_codex' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_codex'.
+
+### [2026-11-09 19:44:04] `PROVIDER_FAIL`: Provider 'pollinations_astra' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_astra'.
+
+### [2026-11-09 19:44:05] `PROVIDER_FAIL`: Provider 'pollinations_sol' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_sol'.
+
+### [2026-11-09 19:44:07] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 4148, Requested 4221. Please try again in 11.734285714s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-09 19:44:08] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-09 19:44:10] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-09 19:44:13] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: qwen.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-10 12:45:05] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Unexpected Gemini response structure: {'candidates': [{'content': {}, 'finishReason': 'UNEXPECTED_TOOL_CALL', 'index': 0}], 'usageMetadata': {'promptTokenCount': 8646, 'totalTokenCount': 8646, 'cachedContentTokenCount': 5916, 'promptTokensDetails': [{'modality': 'TEXT', 'tokenCount': 8646}], 'cacheTokensDetails': [{'modality': 'TEXT', 'tokenCount': 5916}], 'serviceTier': 'standard'}, 'modelVersion': 'gemini-3.5-flash-lite', 'responseId': 'rPXyaqeTDfu9kdUP_fP2kAw'}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-11-10 12:45:07] `PROVIDER_FAIL`: Provider 'pollinations_codex' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_codex'.
+
+### [2026-11-10 12:45:09] `PROVIDER_FAIL`: Provider 'pollinations_astra' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_astra'.
+
+### [2026-11-10 12:45:10] `PROVIDER_FAIL`: Provider 'pollinations_sol' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_sol'.
+
+### [2026-11-10 12:45:13] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 4255, Requested 4687. Please try again in 16.645714285s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-10 12:45:14] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-10 12:45:16] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-10 12:45:18] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: qwen.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-10 12:45:19] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (403): <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blocked</title>
+    <style>@font-face {
+  f
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-10 12:45:19] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 35.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+
+### [2026-11-10 12:45:54] `PROVIDER_FAIL`: Provider 'gemini' failed in mode 'normal'
+- **Details:** Unexpected Gemini response structure: {'candidates': [{'content': {}, 'finishReason': 'UNEXPECTED_TOOL_CALL', 'index': 0}], 'usageMetadata': {'promptTokenCount': 9326, 'totalTokenCount': 9326, 'cachedContentTokenCount': 5883, 'promptTokensDetails': [{'modality': 'TEXT', 'tokenCount': 9326}], 'cacheTokensDetails': [{'modality': 'TEXT', 'tokenCount': 5883}], 'serviceTier': 'standard'}, 'modelVersion': 'gemini-3.5-flash-lite', 'responseId': '4fXyaqqoLv7RvdIPkcHd4Qc'}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'gemini'.
+
+### [2026-11-10 12:45:56] `PROVIDER_FAIL`: Provider 'pollinations_codex' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_codex'.
+
+### [2026-11-10 12:45:57] `PROVIDER_FAIL`: Provider 'pollinations_astra' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_astra'.
+
+### [2026-11-10 12:45:58] `PROVIDER_FAIL`: Provider 'pollinations_sol' failed in mode 'normal'
+- **Details:** Pollinations credit balance exhausted: The account behind this API key doesn't have enough credits. Please [top up](<https://enter.pollinations.ai/top-up?ref=agent_low_balance_topup>) or [complete a quest](<https://enter.pollinations.ai/quests?ref=agent_low_balance_quests>), then try again.
+
+If this isn’t your Pollinations account, contact whoever runs the app or service you’re using.
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'pollinations_sol'.
+
+### [2026-11-10 12:46:00] `PROVIDER_FAIL`: Provider 'groq' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.groq.com/openai/v1/chat/completions failed with status 429: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01k2fjkqewf5gt3kg9yz1ksx65` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Used 3835, Requested 4008. Please try again in 7.225714285s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}
+
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'groq'.
+
+### [2026-11-10 12:46:00] `PROVIDER_FAIL`: Provider 'mistral' failed in mode 'normal'
+- **Details:** Streaming API request to https://api.mistral.ai/v1/chat/completions failed with status 429: {"object":"error","message":"Rate limit exceeded","type":"rate_limited","param":null,"code":"1300","raw_status_code":429}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'mistral'.
+
+### [2026-11-10 12:46:02] `PROVIDER_FAIL`: Provider 'opus_proxy' failed in mode 'normal'
+- **Details:** Opus Proxy API failed with status 403: {"type":"error","error":{"type":"permission_error","message":"[My Key] Your free trial has ended. The free plan is a one-time allowance for your first 7 days after signup, not a daily refill. Pick a plan to keep going: https://t.me/AbhiClaude_Bot?start=plans"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'opus_proxy'.
+
+### [2026-11-10 12:46:02] `PROVIDER_FAIL`: Provider 'omniroute' failed in mode 'normal'
+- **Details:** OmniRoute API failed with status 401: {"error":{"message":"No active credentials for provider: qwen.","type":"authentication_error","code":"invalid_api_key"}}
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omniroute'.
+
+### [2026-11-10 12:46:03] `PROVIDER_FAIL`: Provider 'omegatech_secret' failed in mode 'normal'
+- **Details:** Omegatech Secret API failed (403): <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blocked</title>
+    <style>@font-face {
+  f
+- **💡 Enhancement Recommendation:** Check API key, quota limits, or model route mapping for 'omegatech_secret'.
+
+### [2026-11-10 12:46:03] `SYSTEM`: All providers failed in mode 'normal'
+- **Details:** History count: 47.
+- **💡 Enhancement Recommendation:** Verify network connection, gateway availability, and key configuration.
+

@@ -100,9 +100,9 @@ AUTONOMOUS PERSEVERANCE & MULTI-STEP EXECUTION:
 - NEVER go idle or stop after a single tool step if the overall goal requires verification or follow-up actions. Complete the full workflow!
 - ALWAYS provide a clear, natural, conversational summary of what you accomplished in your final response. Never leave empty text or raw step markers.
 
-BACKGROUND DAEMONS & SERVERS (CRITICAL):
-- When launching web servers or background daemons (e.g. `node server.js`, `npm start`, `vite`, `python app.py`): NEVER run them in blocking foreground mode!
-- Always append `&` or specify `is_daemon=True` so the process runs in the background.
+BACKGROUND DAEMONS, SERVERS & GUI APPS (CRITICAL):
+- When launching web servers, background daemons, or desktop/GUI apps (e.g. `google-chrome`, `whatsapp`, `node server.js`, `npm start`, `vite`, `python app.py`): NEVER wait or run them in blocking foreground mode!
+- Always append `&` or specify `is_daemon=True` so the process runs in the background. HARVIS automatically detaches continuous commands into their own background bubble with a Kill button and delivers your conversational reply in its own message right away.
 - NEVER run unbounded continuous logging commands like `tail -f` or `journalctl -f`. Always use snapshot options like `tail -n 50` or `journalctl -n 50 --no-pager`.
 
 EXPRESSIVE, WARM & LOYAL PERSONALITY (ALWAYS HAROLD'S COMPANION):
@@ -526,6 +526,27 @@ async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
     t0 = time.monotonic()
     output_buf = []
 
+    # Check if this is a continuous command, server, watcher, or GUI application
+    from tools.system import is_continuous_cmd, shell_exec
+    if is_continuous_cmd(cmd):
+        res = shell_exec(cmd=cmd, cwd=cwd)
+        if res.get("is_daemon"):
+            pid = res.get("pid")
+            bg_kb = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(f"🛑 Kill Process (PID {pid})", callback_data=f"kill_bg_{pid}"),
+                    InlineKeyboardButton("📋 View Logs", callback_data=f"bglog_{pid}")
+                ]
+            ])
+            card = (
+                f"⚙️ <b>Running in Background:</b>\n"
+                f"<code>{ui.esc(res.get('command', cmd))}</code>\n\n"
+                f"<b>PID:</b> <code>{pid}</code> • <b>Status:</b> 🟢 Active\n"
+                f"<i>Process is active in the background. Tap below to kill it anytime.</i>"
+            )
+            bubble_msg = await send_html(update.message, card, reply_markup=bg_kb)
+            return 0, res.get("output", ""), 0.5, bubble_msg
+
     kill_kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🛑 Kill Process", callback_data=f"kill_sh_{user.id}")]
     ]) if user else None
@@ -556,6 +577,7 @@ async def shell_exec_live(cmd: str, cwd: str, update: Update) -> tuple:
             stdin=asyncio.subprocess.DEVNULL,
             cwd=cwd,
             executable="/bin/bash",
+            start_new_session=True,
         )
         if user:
             ACTIVE_SHELL_PROCS[user.id] = proc
@@ -1089,8 +1111,44 @@ async def process_chat_query(update: Update, context: ContextTypes.DEFAULT_TYPE,
             ui.store_log(task_id, status.log)
             markup = ui.details_keyboard(task_id)
 
-        # Deliver FIRST (patiently, through flood control), then tidy up the status bubble.
-        # A new message (not an edit) so the phone actually notifies you when a long job is done.
+        # 1. Deliver any background processes started during this interaction as dedicated bubbles
+        try:
+            from tools.system import pop_new_background_procs, is_process_alive, get_background_proc
+            bg_procs = pop_new_background_procs()
+            if not bg_procs and status.log:
+                for entry in status.log:
+                    out_str = entry.get("output", "")
+                    m = re.search(r"\(PID:\s*(\d+)\)", out_str)
+                    if m:
+                        pid_val = int(m.group(1))
+                        if is_process_alive(pid_val):
+                            info = get_background_proc(pid_val)
+                            bg_procs.append(info if info else {
+                                "pid": pid_val,
+                                "cmd": entry.get("args", {}).get("cmd", f"PID {pid_val}"),
+                                "log_file": f"/tmp/daemon_{pid_val}.log"
+                            })
+
+            for bg in bg_procs:
+                bg_pid = bg.get("pid")
+                bg_cmd = bg.get("cmd", "Command")
+                bg_card = (
+                    f"⚙️ <b>Running in Background:</b>\n"
+                    f"<code>{ui.esc(bg_cmd)}</code>\n\n"
+                    f"<b>PID:</b> <code>{bg_pid}</code> • <b>Status:</b> 🟢 Active\n"
+                    f"<i>Process is running. Tap below to terminate it anytime.</i>"
+                )
+                bg_kb = InlineKeyboardMarkup([
+                    [
+                        InlineKeyboardButton(f"🛑 Kill Command (PID {bg_pid})", callback_data=f"kill_bg_{bg_pid}"),
+                        InlineKeyboardButton("📋 View Logs", callback_data=f"bglog_{bg_pid}")
+                    ]
+                ])
+                await io.send(update.message, bg_card, reply_markup=bg_kb, patient=True)
+        except Exception as bg_err:
+            logger.warning(f"Error delivering background proc bubble: {bg_err}")
+
+        # 2. Deliver the final conversational answer bubble
         io.discard(status_msg)
         if think_content:
             await io.send(update.message, ui.think_view(think_content, done=True), patient=True)
@@ -1125,12 +1183,74 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
 
     data = query.data
+    if data.startswith("kill_bg_"):
+        pid_str = data.replace("kill_bg_", "")
+        try:
+            pid = int(pid_str)
+        except ValueError:
+            await query.answer("Invalid PID.", show_alert=True)
+            return
+
+        from tools.system import kill_process_by_pid, get_background_proc
+        proc_info = get_background_proc(pid)
+        cmd_name = proc_info.get("cmd", f"PID {pid}") if proc_info else f"PID {pid}"
+
+        killed = kill_process_by_pid(pid)
+        if killed:
+            await query.answer(f"🛑 Terminated PID {pid}", show_alert=True)
+            await _safe_edit(
+                query.message,
+                f"🛑 <b>Command Terminated:</b>\n"
+                f"<code>{ui.esc(cmd_name)}</code>\n\n"
+                f"<b>PID:</b> <code>{pid}</code> (Stopped by Harold)"
+            )
+        else:
+            await query.answer("Process was already terminated or not found.", show_alert=False)
+            await _safe_edit(
+                query.message,
+                f"⚪ <b>Command Inactive:</b>\n"
+                f"<code>{ui.esc(cmd_name)}</code>\n\n"
+                f"<b>PID:</b> <code>{pid}</code> (Already stopped)"
+            )
+        return
+
+    if data.startswith("bglog_"):
+        pid_str = data.replace("bglog_", "")
+        try:
+            pid = int(pid_str)
+        except ValueError:
+            await query.answer("Invalid PID.", show_alert=True)
+            return
+
+        from tools.system import get_background_proc
+        proc_info = get_background_proc(pid)
+        log_file = proc_info.get("log_file") if proc_info else f"/tmp/daemon_{pid}.log"
+        content = ""
+        if log_file and os.path.exists(log_file):
+            try:
+                with open(log_file, "r", errors="ignore") as f:
+                    content = f.read().strip()
+            except Exception as e:
+                content = f"Error reading log file: {e}"
+        if not content:
+            content = "(No logs recorded for this process yet)"
+
+        await query.answer()
+        buf = io.BytesIO(content.encode("utf-8"))
+        buf.name = f"process_{pid}_logs.txt"
+        await query.message.reply_document(buf, caption=f"📋 Logs for PID {pid}")
+        return
+
     if data.startswith("kill_sh_"):
         target_id = int(data.replace("kill_sh_", ""))
         proc = ACTIVE_SHELL_PROCS.get(target_id)
         if proc and proc.returncode is None:
             try:
-                proc.kill()
+                try:
+                    pgid = os.getpgid(proc.pid)
+                    os.killpg(pgid, signal.SIGKILL)
+                except Exception:
+                    proc.kill()
                 await query.answer("🛑 Terminating shell command...", show_alert=True)
             except Exception:
                 await query.answer("Could not terminate command.", show_alert=False)

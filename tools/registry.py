@@ -83,13 +83,17 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "shell_exec",
-        "description": "Executes a shell command on the local computer. For package installs, builds, or long scripts, specify a custom timeout in seconds (e.g. 60 or 120).",
+        "description": "Executes a shell command on the local computer. For package installs, builds, or long scripts, specify a custom timeout in seconds (e.g. 60 or 120). For continuous or background services/daemons (dev servers, GUI apps, watchers), set is_daemon=true to detach immediately without blocking.",
         "parameters": {
             "type": "object",
             "properties": {
                 "cmd": {
                     "type": "string",
                     "description": "The shell command to run (e.g. ls -la, npm install, cargo build)"
+                },
+                "is_daemon": {
+                    "type": "boolean",
+                    "description": "Set to true for long-running servers, watchers, GUI applications, or continuous commands so they run in the background without blocking."
                 },
                 "timeout": {
                     "type": "integer",

@@ -80,7 +80,7 @@ IMPORTANT FORMATTING RULES:
 Tool usage guidelines:
 - open_app: Launch applications. To open a website in a browser, pass BOTH name (e.g. "chrome") AND url (e.g. "youtube" or "https://youtube.com"). Site shortcuts like youtube, google, github, gmail work as url values.
 - open_url: Open a website directly. Pass url (required) and optional browser (e.g. "chrome", "firefox"). Use this when the user wants to open a specific site.
-- shell_exec: Run terminal commands ONLY when no dedicated tool fits. Always pass cmd as a string (the full command). Do NOT use shell_exec for brightness, volume, timers, screenshots, media, RAM, disk/storage, or top processes.
+- shell_exec: Run terminal commands ONLY when no dedicated tool fits. Always pass cmd as a string (the full command). For continuous background commands, dev servers, watchers, or GUI apps, you can set is_daemon=true or append &; HARVIS detaches them immediately into their own background bubble with a Kill button. Do NOT use shell_exec for brightness, volume, timers, screenshots, media, RAM, disk/storage, or top processes.
 - file_op: Read, write, move, or delete files.
 - list_dir: List contents of a directory.
 - system_info: CPU load, RAM, disk/storage, and the apps using the most CPU and memory. Use this with no arguments whenever Harold asks about ram, storage, disk, memory, or consuming/top apps.
