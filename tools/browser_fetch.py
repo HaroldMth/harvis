@@ -75,7 +75,7 @@ async def _playwright_fetch(
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
             ),
-            locale="en-US,en;q=0.9",
+            locale="en-US",
             timezone_id="Africa/Johannesburg",
             extra_http_headers={
                 "Accept-Language": "en-US,en;q=0.9",
@@ -205,13 +205,14 @@ async def _playwright_fetch(
 
 
 def browser_fetch(
-    url: str,
+    url: str | dict = None,
     extract: str = "text",
     wait_for: str = "networkidle",
     wait_selector: str = None,
     scroll: bool = True,
     max_chars: int = 12000,
     headless: bool = True,
+    **kwargs,
 ) -> dict:
     """
     Fetch and read any webpage using a real Chromium browser.
@@ -227,6 +228,19 @@ def browser_fetch(
         max_chars: Max characters to return in text/html mode (default: 12000)
         headless: Whether to run headless (default True). Automatically flips to False if CAPTCHA detected.
     """
+    if isinstance(url, dict):
+        kwargs.update(url)
+        url = kwargs.pop("url", None)
+        extract = kwargs.pop("extract", extract)
+        wait_for = kwargs.pop("wait_for", wait_for)
+        wait_selector = kwargs.pop("wait_selector", wait_selector)
+        scroll = kwargs.pop("scroll", scroll)
+        max_chars = kwargs.pop("max_chars", max_chars)
+        headless = kwargs.pop("headless", headless)
+
+    if not url or not isinstance(url, str):
+        return {"success": False, "error": "url is required and must be a valid URL string."}
+
     return asyncio.run(_playwright_fetch(
         url=url,
         extract=extract,
