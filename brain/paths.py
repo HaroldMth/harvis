@@ -51,6 +51,7 @@ def register_project(name: str, path: str, ptype: str = "general", description: 
 HARVIS_SESSIONS = HARVIS_DIR / "sessions"
 DB_PATH = HARVIS_SESSIONS / "harvis.db"
 BUSY_FILE = HARVIS_SESSIONS / "busy_state.json"
+STATE_FILE = HARVIS_DIR / "STATE.md"
 
 # Logs
 HARVIS_LOGS = HARVIS_DIR / "logs"
