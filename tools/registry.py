@@ -8,6 +8,13 @@ from tools.desktop import (
 from tools.timer import timer
 from tools.code import CODE_TOOLS_SCHEMA, CODE_TOOLS_DISPATCH
 from tools.browser_fetch import browser_fetch
+from tools.eyes import (
+    desktop_look,
+    desktop_click_element,
+    desktop_click,
+    desktop_type,
+    desktop_press_keys,
+)
 from db.store import log_tool_call
 
 import json
@@ -398,6 +405,84 @@ TOOLS_SCHEMA = [
             },
             "required": ["action"]
         }
+    },
+    {
+        "name": "desktop_look",
+        "description": "Inspect Harold's desktop screen, open windows, and interactive GUI widgets. Use mode='windows' to list active and open application windows. Use mode='ui' to read the accessibility widget tree of the active window (buttons, text inputs, checkboxes). Use mode='ocr' to capture fullscreen and extract text via OCR.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "type": "string",
+                    "enum": ["windows", "ui", "ocr"],
+                    "description": "Inspection mode: 'windows' (fast window list), 'ui' (semantic AT-SPI widget hierarchy), 'ocr' (fullscreen OCR)"
+                },
+                "max_chars": {
+                    "type": "integer",
+                    "description": "Maximum characters to return (default: 4000)"
+                }
+            }
+        }
+    },
+    {
+        "name": "desktop_click_element",
+        "description": "Click an interactive UI element by name in the active window using native AT-SPI actions. Fast and native — triggers the widget directly without needing screen coordinates. Use desktop_look(mode='ui') first to check exact element names.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name or text label of the button, link, or element to click (e.g. 'OK', 'Save', 'Cancel')"
+                }
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "desktop_click",
+        "description": "Move the mouse cursor and click absolute screen coordinates (x, y) via ydotool on Wayland. Prefer desktop_click_element() first; use this for coordinate-based clicks on custom canvases or games.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "integer",
+                    "description": "Horizontal pixel coordinate from top-left (e.g. 500)"
+                },
+                "y": {
+                    "type": "integer",
+                    "description": "Vertical pixel coordinate from top-left (e.g. 350)"
+                }
+            },
+            "required": ["x", "y"]
+        }
+    },
+    {
+        "name": "desktop_type",
+        "description": "Type text into the currently focused desktop input field via ydotool. Ensure the target text box or window is focused before calling.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "Text string to type into the focused field"
+                }
+            },
+            "required": ["text"]
+        }
+    },
+    {
+        "name": "desktop_press_keys",
+        "description": "Send key combinations or special keystrokes on Wayland via ydotool. Accepts friendly key names (e.g. 'enter', 'tab', 'esc', 'backspace', 'up', 'down', 'ctrl+c', 'ctrl+v', 'alt+tab', 'super') or raw evdev codes (e.g. '28:1 28:0').",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "combo": {
+                    "type": "string",
+                    "description": "Key name or shortcut combo (e.g. 'enter', 'esc', 'tab', 'ctrl+c', 'ctrl+v') or raw evdev sequence"
+                }
+            },
+            "required": ["combo"]
+        }
     }
 ]
 
@@ -617,6 +702,11 @@ TOOL_DISPATCH = {
     "media_control": media_control,
     "screenshot": screenshot,
     "session_manager": session_manager,
+    "desktop_look": desktop_look,
+    "desktop_click_element": desktop_click_element,
+    "desktop_click": desktop_click,
+    "desktop_type": desktop_type,
+    "desktop_press_keys": desktop_press_keys,
 }
 
 
