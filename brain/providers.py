@@ -1081,3 +1081,99 @@ def call_omegatech_secret(history, system_prompt=None, stream_callback=None, ena
     }
 
 
+def call_omegatech(history, system_prompt=None, stream_callback=None, enable_tools=True, model="deepseek-v3.2", **kwargs):
+    """Provider for Omegatech Claude-pro endpoint with DeepSeek v3.2 / Claude Sonnet / Opus."""
+    url = "https://api.omegatech.app/api/ai/Claude-pro"
+
+    # Format conversation history into full context so model has complete conversational memory
+    history_lines = []
+    if system_prompt:
+        history_lines.append(f"System Instructions:\n{system_prompt}")
+
+    if enable_tools:
+        history_lines.append(
+            "[TOOL EXECUTION INSTRUCTIONS]\n"
+            "To execute a tool on Harold's Linux system, format your tool call in XML syntax:\n"
+            "<tool_call><function=TOOL_NAME><parameter=ARG_NAME>ARG_VALUE</parameter></function></tool_call>\n"
+            "Do not narrate tool calls. Only invoke when necessary."
+        )
+
+    for msg in history[-12:]:  # last 12 turns for deep context
+        r = msg.get("role", "user")
+        c = msg.get("content", "")
+        if isinstance(c, list):
+            c_text = " ".join([p.get("text", "") for p in c if isinstance(p, dict)])
+        else:
+            c_text = str(c or "")
+
+        if r == "user":
+            history_lines.append(f"Harold: {c_text}")
+        elif r == "assistant":
+            if '"tool_name"' in c_text:
+                try:
+                    tc_data = json.loads(c_text)
+                    history_lines.append(f"HARVIS Action: executed {tc_data.get('tool_name')} with {tc_data.get('tool_args')}")
+                except Exception:
+                    history_lines.append(f"HARVIS: {c_text}")
+            else:
+                history_lines.append(f"HARVIS: {c_text}")
+        elif r == "tool":
+            history_lines.append(f"[Tool Output]: {c_text}")
+
+    full_prompt = "\n\n".join(history_lines) if history_lines else "Hello"
+
+    payload = {
+        "action": "chat",
+        "prompt": full_prompt,
+        "model": model,
+        "chatStyle": "chat",
+        "tools": "none",
+        "size": "portrait",
+        "version": "hd",
+        "clearSession": True,
+    }
+
+    logger.info(f"Omegatech Claude-pro model={model}")
+    try:
+        response = requests.post(url, json=payload, timeout=(10, 60))
+        if response.status_code != 200:
+            response = requests.get(url, params=payload, timeout=(10, 60))
+    except Exception:
+        response = requests.get(url, params=payload, timeout=(10, 60))
+
+    if response.status_code != 200:
+        raise RuntimeError(f"Omegatech Claude-pro API failed ({response.status_code}): {response.text[:200]}")
+
+    body = response.json()
+    reply = body.get("response", "")
+    if not reply and "data" in body:
+        reply = body.get("data", {}).get("reply", "")
+
+    if stream_callback and reply:
+        try:
+            stream_callback(reply)
+        except Exception:
+            pass
+
+    tc = extract_tool_call_from_text(reply)
+    if tc and enable_tools:
+        logger.info(f"Omegatech Claude-pro detected tool_call: {tc['tool_name']}")
+        return {
+            "type": "tool_call",
+            "content": None,
+            "tool_name": tc["tool_name"],
+            "tool_args": tc["tool_args"],
+            "extra_calls": tc.get("extra_calls", []),
+            "routed_model": f"omegatech/{model}",
+        }
+
+    return {
+        "type": "text",
+        "content": reply,
+        "tool_name": None,
+        "tool_args": None,
+        "routed_model": f"omegatech/{model}",
+    }
+
+
+
