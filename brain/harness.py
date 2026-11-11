@@ -84,6 +84,21 @@ def _result_sig(tool_name, tool_args, raw_text) -> str:
     return base + ":" + hashlib.md5((raw_text or "").encode("utf-8", "ignore")).hexdigest()[:12]
 
 
+def _call_engine(engine, *args, **kwargs):
+    """Run the model call in a worker thread. StopIteration must not escape: raised inside an asyncio
+    thread future it is swallowed by the machinery and the whole task hangs forever."""
+    try:
+        return engine(*args, **kwargs)
+    except StopIteration as e:
+        raise RuntimeError("engine raised StopIteration (exhausted generator?)") from e
+
+
+_PROMISE_PHRASES = (
+    "i'm on it", "i am on it", "building now", "actively being built", "started implementing",
+    "i will build", "i will create", "let me code", "let's build", "i'm starting to build",
+    "i have started", "i've started",
+)
+
 # --- Batching, snapshots and verification --------------------------------------------------
 READ_ONLY_TOOLS = {"read_file", "grep", "glob_files", "list_dir", "web_search", "fetch_url",
                    "system_info", "browser_fetch"}
@@ -139,7 +154,7 @@ def _git_snapshot(directory, task_id, label):
         return None
 
 
-async def _execute_batch(work, task_mgr, default_cwd=None):
+async def _execute_batch(work, task_mgr, default_cwd=None, hooks_for=None):
     """Run a list of (name, args). Consecutive read-only calls run concurrently; anything
     that may change state runs alone, in order. Returns [(result, seconds)] in call order."""
     def with_cwd(name, args):
@@ -161,13 +176,28 @@ async def _execute_batch(work, task_mgr, default_cwd=None):
                 a["destination"] = rel(a["destination"])
         return a
 
-    async def one(name, args):
+    async def one(name, args, idx=0):
         t0 = time.time()
+        token = None
+        try:
+            hooks = hooks_for(idx, name) if hooks_for else None
+            if hooks:                                   # visible to the worker thread (to_thread copies the context)
+                from tools.system import STREAM_HOOKS
+                token = STREAM_HOOKS.set(hooks)
+        except Exception:
+            token = None
         try:
             return await _one(name, with_cwd(name, args), t0)
         except Exception as e:  # a tool blowing up is an observation for the agent, not the end of the task
             logger.warning(f"Tool {name} raised: {e}")
             return {"success": False, "output": "", "error": f"{type(e).__name__}: {e}"}, round(time.time() - t0, 2)
+        finally:
+            if token is not None:
+                try:
+                    from tools.system import STREAM_HOOKS
+                    STREAM_HOOKS.reset(token)
+                except Exception:
+                    pass
 
     async def _one(name, args, t0):
         if name == "shell_exec" and not (args or {}).get("cmd"):
@@ -192,10 +222,10 @@ async def _execute_batch(work, task_mgr, default_cwd=None):
             j = i
             while j < len(work) and work[j][0] in READ_ONLY_TOOLS:
                 j += 1
-            out.extend(await asyncio.gather(*[one(n, a) for n, a in work[i:j]]))
+            out.extend(await asyncio.gather(*[one(n, a, k) for k, (n, a) in enumerate(work[i:j], start=i)]))
             i = j
         else:
-            out.append(await one(*work[i]))
+            out.append(await one(work[i][0], work[i][1], i))
             i += 1
     return out
 
@@ -361,6 +391,7 @@ class HarnessRunner:
         seq = edit_seq = verify_seq = 0
         last_snap_step = -999
         finish_checked = False
+        nudges = 0
         try:
             from db.store import get_session_info
             sinfo = get_session_info(self.session_id)
@@ -370,6 +401,13 @@ class HarnessRunner:
         except Exception:
             pass
 
+        memory_block = ""
+        try:
+            from brain.continuity import build_working_memory_prompt
+            memory_block = build_working_memory_prompt(self.session_id, snap_dir)
+        except Exception as mb_err:
+            logger.debug(f"Continuity memory block generation failed: {mb_err}")
+
         header = (
             f"[harness] Session ID: {self.session_id}{active_dir_info}\n"
             f"[harness] Task directory: {self.task_mgr.dir}\n"
@@ -378,6 +416,8 @@ class HarnessRunner:
             f"[harness] Budget: "
             f"{max_steps or 'unlimited'} steps, {max_duration_sec or 'unlimited'}s."
         )
+        if memory_block:
+            header += f"\n\n{memory_block}"
         if isinstance(goal, str):
             first = {"role": "user", "content": f"{goal}\n\n{header}"}
         else:
@@ -421,7 +461,7 @@ class HarnessRunner:
             for attempt in range(1, attempts + 1):
                 try:
                     response = await asyncio.to_thread(
-                        self.engine, history, system_prompt=turn_prompt, mode=self.mode,
+                        _call_engine, self.engine, history, system_prompt=turn_prompt, mode=self.mode,
                         stream_callback=stream_callback, extra_tools=[FINISH_TOOL, UPDATE_TASK_TOOL],
                     )
                 except Exception as err:
@@ -448,32 +488,28 @@ class HarnessRunner:
                 return self._result("provider_error", False, step,
                                     message="All engine providers failed during harness execution.")
 
-            # Plain text, no tool call: check if agent gave a conversational promise without executing
+            # Plain text, no tool call. If the agent only narrated ("I'm on it") while its own task file
+            # still has unchecked items, push it on - but only a couple of times in a row, never when it
+            # is asking the user something, and never past the step budget. Otherwise the text is the answer.
             if response.get("type") != "tool_call":
                 text = (response.get("content") or "").strip()
                 plan = self.task_mgr.read_plan()
-                has_pending_plan = plan and any(line.strip().startswith("- [ ]") for line in plan.splitlines())
-                
-                lower_text = text.lower()
-                is_promising_action = any(phrase in lower_text for phrase in (
-                    "i'm on it", "i am on it", "building now", "actively being built",
-                    "started implementing", "i will build", "i will create", "let me code",
-                    "let's build", "i'm starting to build", "i have started", "i've started"
-                ))
-
-                limit = max_steps or 20
-                if (has_pending_plan or is_promising_action) and step < limit - 1:
-                    # Emit catch-up update so the user/UI sees intermediate progress
+                open_items = len(re.findall(r"^\s*[-*+]\s+\[ \]", plan or "", re.M))
+                promising = any(p in text.lower() for p in _PROMISE_PHRASES)
+                asking = text.rstrip().endswith("?")
+                within_budget = not max_steps or step < max_steps - 1
+                if (settings.MAX_NUDGES and nudges < settings.MAX_NUDGES and not asking
+                        and (open_items or promising) and within_budget):
+                    nudges += 1
+                    self.task_mgr.append_trace({"step": step, "type": "nudge", "n": nudges, "open_items": open_items})
                     await emit({"type": "catchup", "step": step, "text": text, "plan": plan})
-                    history.append({"role": "assistant", "content": text})
-                    history.append({
-                        "role": "user",
-                        "content": (
-                            "[System Guidance: You stated you are working on the task, but no tools were executed in this turn. "
-                            "Do not stop or ask the user to wait in plain text. Execute the next concrete tool (shell_exec, file_op, etc.) "
-                            "RIGHT NOW to advance or finish the build.]"
-                        )
-                    })
+                    history.append({"role": "assistant", "content": text or "(no reply)"})
+                    why = (f"task.md still has {open_items} unchecked item(s)" if open_items
+                           else "you said you were working on it")
+                    history.append({"role": "user", "content": (
+                        f"[System Guidance: no tool was called, but {why}. Do not stop to narrate. "
+                        "Call the next tool now, update_task if the plan changed, or call finish if you are "
+                        "done or blocked.]")})
                     continue
 
                 self.task_mgr.append_trace({"step": step, "type": "final_text", "content": text})
@@ -482,6 +518,7 @@ class HarnessRunner:
                 return self._result("answered", None, step, output=text)
 
 
+            nudges = 0                       # a real tool call resets the nudge counter
             calls = [(response.get("tool_name"), response.get("tool_args", {}) or {})]
             calls += [(c.get("tool_name"), c.get("tool_args", {}) or {})
                       for c in (response.get("extra_calls") or []) if c.get("tool_name")]
@@ -489,9 +526,9 @@ class HarnessRunner:
             work = [(n, a) for n, a in calls if n != FINISH_TOOL["name"]]
 
             if work:
-                for n, a in work:
-                    await emit({"type": "acting", "step": step, "tool_name": n, "tool_args": a,
-                                "plan": self.task_mgr.read_plan()})
+                for i, (n, a) in enumerate(work):
+                    await emit({"type": "acting", "step": step, "call_id": f"{step}.{i}", "tool_name": n,
+                                "tool_args": a, "plan": self.task_mgr.read_plan()})
 
                 # Snapshot the working tree before the first change, then at most every 5 steps.
                 if snap_dir and any(_is_mutating(n, a) for n, a in work) and step - last_snap_step >= 5:
@@ -500,9 +537,27 @@ class HarnessRunner:
                     if sha:
                         self.task_mgr.append_trace({"step": step, "type": "snapshot", "ref": f"refs/harvis/{self.task_id}/step{step}", "sha": sha})
 
-                results = await _execute_batch(work, self.task_mgr, snap_dir)
+                loop = asyncio.get_running_loop()
 
-                for (tool_name, tool_args), (tool_res, took) in zip(work, results):
+                def hooks_for(i, name):
+                    """Live output + cancellation for a command; other tools get nothing."""
+                    if name != "shell_exec":
+                        return None
+                    last = [0.0]
+
+                    def on_output(text):                       # called from the tool's worker thread
+                        now = time.monotonic()
+                        if now - last[0] < 0.5:
+                            return
+                        last[0] = now
+                        loop.call_soon_threadsafe(lambda: loop.create_task(emit(
+                            {"type": "output", "step": step, "call_id": f"{step}.{i}",
+                             "tool_name": name, "text": text})))
+                    return {"on_output": on_output, "cancel_event": cancel_event}
+
+                results = await _execute_batch(work, self.task_mgr, snap_dir, hooks_for)
+
+                for call_idx, ((tool_name, tool_args), (tool_res, took)) in enumerate(zip(work, results)):
                     seq += 1
                     ok = bool(tool_res.get("success", False))
                     raw = tool_res.get("output", "") or ""
@@ -530,6 +585,20 @@ class HarnessRunner:
                                         update_session(self.session_id, active_dir=snap_dir)
                                     except Exception:
                                         pass
+
+                        # Record touched files and commands into session working memory
+                        try:
+                            from brain.continuity import record_touched_file, record_command_action
+                            if tool_name in ("write_file", "edit_file") and isinstance(tool_args, dict) and tool_args.get("path"):
+                                record_touched_file(self.session_id, tool_args["path"], action=tool_name)
+                            elif tool_name == "file_op" and isinstance(tool_args, dict) and tool_args.get("path"):
+                                act = tool_args.get("action", "file_op")
+                                if act in ("write", "append", "create", "edit"):
+                                    record_touched_file(self.session_id, tool_args["path"], action=act)
+                            elif tool_name == "shell_exec" and isinstance(tool_args, dict) and tool_args.get("cmd"):
+                                record_command_action(self.session_id, tool_args["cmd"], exit_code=0 if ok else 1, output_summary=raw_text)
+                        except Exception as c_err:
+                            logger.debug(f"Continuity recording failed: {c_err}")
 
                     if ok and _is_verify(tool_name, tool_args):
                         verify_seq = seq
@@ -574,7 +643,10 @@ class HarnessRunner:
                     history.append({"role": "tool",
                                     "content": f"{_clip(raw_text, settings.OBS_CHARS)}\n{note}"})
 
-                    await emit({"type": "checked", "step": step, "tool_name": tool_name, "success": ok,
+                    await emit({"type": "checked", "step": step, "call_id": f"{step}.{call_idx}",
+                                "tool_name": tool_name, "tool_args": tool_args, "success": ok,
+                                "exit_code": (None if tool_res.get("cancelled") else
+                                              tool_res.get("code", 0 if ok else 1)),
                                 "check_passed": ok, "details": note[:200], "output": raw_text,
                                 "plan": self.task_mgr.read_plan()})
 

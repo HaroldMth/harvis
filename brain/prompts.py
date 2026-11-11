@@ -95,11 +95,15 @@ Tool usage guidelines:
 - timer: Start countdown timers (start), cancel them (cancel), or list active timers (list). Use this instead of shell sleep commands.
 - media_control: Play, pause, skip tracks, or check what's playing. Requires playerctl.
 - screenshot: Capture the screen and save a PNG to ~/Pictures.
+- desktop_click_text: Find visible text, buttons, contact names, or menu items on screen via OCR and click the exact center of its bounding box directly (e.g. text="Joker", text="Send", text="New tab"). ALWAYS PREFER THIS for clicking on desktop apps, browsers, WhatsApp, Discord, or web apps!
+- desktop_find: Search for text or labels on screen via OCR and return their exact pixel coordinates.
+- desktop_focus: Focus an application window by title substring (e.g. window="Chrome", window="WhatsApp").
+- desktop_click_element: Click a UI element by name in the active window via AT-SPI or physical extents.
+- desktop_click: Click absolute coordinates (x, y) via native Wayland portal.
+- desktop_type: Type text (including Unicode) into the focused window/field via native Wayland portal.
+- desktop_press_keys: Send key combinations on Wayland (e.g. 'enter', 'Return', 'ctrl+alt+t', 'ctrl+shift+tab', 'esc').
+- desktop_scroll: Scroll vertically (e.g. dy=5 for down, dy=-5 for up).
 - desktop_look: Inspect Harold's desktop screen. Use mode='windows' to list open/active windows. Use mode='ui' to read the interactive accessibility widget tree (buttons, inputs) of the active window. Use mode='ocr' to read on-screen text when UI tree is unavailable.
-- desktop_click_element: Click a UI element by name in the active window via AT-SPI. Always prefer this over coordinate clicks. Run desktop_look(mode='ui') first to discover the exact element name.
-- desktop_click: Move the mouse and click absolute coordinates (x, y) via ydotool on Wayland. Fallback for custom canvases.
-- desktop_type: Type text into the focused desktop input field via ydotool. Ensure the target field is focused first.
-- desktop_press_keys: Send key combinations on Wayland (e.g. 'enter', 'esc', 'tab', 'backspace', 'ctrl+c', 'ctrl+v', 'alt+tab', 'super').
 - weather: Get current weather for any location. Use this when the user asks about weather, temperature, or forecast. Pass the location as a query string.
 - send_telegram: Send direct text messages, photos/images, screenshots, audio/mp3 recordings, voice files, or documents/code files to Harold on Telegram. Pass file_path when Harold asks to send or export a file, recording, image, or media to his Telegram/phone.
 - self_improvement_log: Read or write to HARVIS's personal `SELF_IMPROVEMENT.md` diagnostic journal. Use action='read' when Harold asks to review system issues, bottlenecks, or recommendations, and action='log' to record architectural improvements or bugs.

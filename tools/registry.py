@@ -717,6 +717,116 @@ TOOL_DISPATCH = {
 TOOLS_SCHEMA.extend(CODE_TOOLS_SCHEMA)
 TOOL_DISPATCH.update(CODE_TOOLS_DISPATCH)
 
+# HARVIS_GEO_PATCH: precision desktop tools + vision registration
+from tools.eyes import (
+    desktop_click, desktop_screen_info, desktop_locate_text, desktop_click_text,
+    desktop_find, desktop_focus, desktop_scroll, desktop_move
+)
+
+TOOL_DISPATCH.update({
+    "desktop_click": desktop_click,
+    "desktop_screen_info": desktop_screen_info,
+    "desktop_locate_text": desktop_locate_text,
+    "desktop_click_text": desktop_click_text,
+    "desktop_find": desktop_find,
+    "desktop_focus": desktop_focus,
+    "desktop_scroll": desktop_scroll,
+    "desktop_move": desktop_move,
+})
+
+_GEO_SCHEMA = [
+    {
+        "name": "desktop_click",
+        "description": "Exact mouse click at screen coordinates (x, y) via native Wayland portal. Prefer desktop_click_text or desktop_click_element when possible.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "x": {"type": "number", "description": "Screen X coordinate"},
+                "y": {"type": "number", "description": "Screen Y coordinate"},
+                "button": {"type": "string", "enum": ["left", "right", "middle"], "description": "Mouse button (default left)"},
+                "clicks": {"type": "integer", "description": "1 = click, 2 = double click (default 1)"},
+            },
+            "required": ["x", "y"],
+        },
+    },
+    {
+        "name": "desktop_screen_info",
+        "description": "Exact screen geometry in logical pixels (per-monitor position, size, scale) and current cursor position.",
+        "parameters": {"type": "object", "properties": {"verify": {"type": "boolean"}}},
+    },
+    {
+        "name": "desktop_locate_text",
+        "description": "OCR the screen and return exact pixel coordinates of all matches of target text.",
+        "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+    },
+    {
+        "name": "desktop_find",
+        "description": "Alias of desktop_locate_text. Locates text on screen via OCR and returns its center pixel coordinates.",
+        "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+    },
+    {
+        "name": "desktop_click_text",
+        "description": "Find visible text on screen via OCR and click the exact center of its bounding box. Preferred for clicking on chat contacts, buttons, tab titles, or menu items by their visible text name.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "Visible text to find and click (e.g. 'Joker', 'Send', 'New tab')"},
+                "nth": {"type": "integer", "description": "1-based index if text appears multiple times (default 1)"},
+                "button": {"type": "string", "enum": ["left", "right", "middle"], "description": "Mouse button (default left)"},
+                "clicks": {"type": "integer", "description": "1 = single click, 2 = double click (default 1)"},
+            },
+            "required": ["text"],
+        },
+    },
+    {
+        "name": "desktop_focus",
+        "description": "Focus an application window by title or substring (e.g. 'Chrome', 'WhatsApp', 'Kate').",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "window": {"type": "string", "description": "Window title substring to focus"}
+            },
+            "required": ["window"]
+        }
+    },
+    {
+        "name": "desktop_scroll",
+        "description": "Scroll vertically on the active window. Negative scrolls up, positive scrolls down.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "dy": {"type": "integer", "description": "Scroll amount (e.g. -5 for up, 5 for down)"}
+            },
+            "required": ["dy"]
+        }
+    },
+]
+
+try:
+    from tools.vision import analyze_image, screenshot_and_analyze
+    TOOL_DISPATCH.update({"analyze_image": analyze_image, "screenshot_and_analyze": screenshot_and_analyze})
+    _GEO_SCHEMA += [
+        {
+            "name": "screenshot_and_analyze",
+            "description": "Take a screenshot and have a vision model describe it. Use when AT-SPI and OCR cannot make sense of the screen. Do NOT derive click coordinates from this; use desktop_locate_text.",
+            "parameters": {"type": "object", "properties": {"prompt": {"type": "string"}}},
+        },
+        {
+            "name": "analyze_image",
+            "description": "Analyze an image file with a vision model.",
+            "parameters": {
+                "type": "object",
+                "properties": {"image_path": {"type": "string"}, "prompt": {"type": "string"}},
+                "required": ["image_path"],
+            },
+        },
+    ]
+except Exception as _geo_e:  # noqa: BLE001
+    logger.warning("vision tools not registered: %s", _geo_e)
+
+_geo_names = {_s["name"] for _s in _GEO_SCHEMA}
+TOOLS_SCHEMA[:] = [_s for _s in TOOLS_SCHEMA if _s["name"] not in _geo_names] + _GEO_SCHEMA
+
 
 def get_all_tools_schema():
     """Return built-in + plugin schemas for LLM tool calling."""
@@ -777,7 +887,11 @@ def _dispatch_impl(name, args):
     except Exception:
         pass  # a locked/unwritable log DB must never fail the tool that already ran
 
+    # Keep extra fields a tool reports (exit `code`, `timed_out`, `cancelled`): the harness and the
+    # Telegram bubbles need them, and they used to be silently dropped here.
+    extras = {k: v for k, v in result.items() if k not in ("success", "output", "error", "status")}
     return {
+        **extras,
         "success": result.get("success", False),
         "output": result.get("output", ""),
         "error": result.get("error", ""),
