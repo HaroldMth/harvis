@@ -1,0 +1,30 @@
+# secrets / local config
+.env
+.tokens
+
+# runtime state (lives in ~/.harvis, but just in case)
+.harvis/
+db/*.db
+db/*.json
+SELF_IMPROVEMENT.md
+task.md
+
+# models & media
+audio/silero_vad.onnx
+*.mp3
+*.wav
+
+# python / node
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+ui/node_modules/
+ui/dist/
+
+# misc
+.vscode/
+*.log
+*.bak*
+*.tmp
+*.patch

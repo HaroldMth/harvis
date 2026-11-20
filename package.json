@@ -1,0 +1,11 @@
+{
+  "name": "harvis",
+  "version": "1.0.0",
+  "main": "puter_stt.mjs",
+  "license": "MIT",
+  "description": "Puter.js speech-to-text helper for HARVIS",
+  "dependencies": {
+    "@heyputer/puter.js": "^2.6.0"
+  },
+  "private": true
+}

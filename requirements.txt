@@ -1,0 +1,16 @@
+PyQt6
+PyQt6-WebEngine
+python-dotenv
+numpy
+requests
+sounddevice
+faster-whisper
+onnxruntime
+edge-tts
+python-telegram-bot
+psutil
+playwright
+Pillow
+# PyGObject (the `gi` module, used for AT-SPI desktop inspection) comes from your
+# distro package (e.g. `pacman -S python-gobject`); see the README.
+# Optional wake word: pip install openwakeword
